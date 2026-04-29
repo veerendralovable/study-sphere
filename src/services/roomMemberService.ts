@@ -26,6 +26,14 @@ export const roomMemberService = {
     return data;
   },
 
+  async joinByCode(code: string) {
+    const { data, error } = await supabase.rpc("join_room_by_code", {
+      _code: code,
+    });
+    if (error) throw error;
+    return data as { room_id: string } & Record<string, unknown>;
+  },
+
   async leave(userId: string, roomId: string) {
     const { error } = await supabase
       .from("room_members")

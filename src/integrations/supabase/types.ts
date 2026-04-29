@@ -219,6 +219,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      join_room_by_code: {
+        Args: { _code: string }
+        Returns: {
+          id: string
+          joined_at: string
+          role: string
+          room_id: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       shares_active_room: {
         Args: { _target: string; _viewer: string }
         Returns: boolean
