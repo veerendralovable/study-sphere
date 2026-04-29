@@ -156,12 +156,26 @@ export default function Dashboard() {
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setJoiningCode(true);
     try {
+      // Try public lookup first; if not visible (private), fall back to RPC.
       const room = await roomService.findByCode(parsed.data);
-      if (!room) throw new Error("Room not found");
-      await roomMemberService.join(user.id, room.id);
-      toast.success(`Joined ${room.name}`);
+      if (room && !room.is_private) {
+        await roomMemberService.join(user.id, room.id);
+        toast.success(`Joined ${room.name}`);
+        setCode("");
+        navigate(`/room/${room.id}`);
+        return;
+      }
+      // Private path: RPC validates code server-side and returns membership row
+      const membership = await supabase.rpc("find_private_room_id_by_code", {
+        _code: parsed.data,
+      });
+      if (membership.error) throw membership.error;
+      const targetRoomId = membership.data as string | null;
+      if (!targetRoomId) throw new Error("Room not found");
+      await roomMemberService.joinPrivate(targetRoomId, parsed.data);
+      toast.success("Joined room");
       setCode("");
-      navigate(`/room/${room.id}`);
+      navigate(`/room/${targetRoomId}`);
     } catch (e: any) {
       toast.error(e.message ?? "Failed to join");
     } finally {
