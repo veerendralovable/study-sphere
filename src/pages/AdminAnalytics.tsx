@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminService } from "@/services/adminService";
+import { advancedAnalyticsService } from "@/services/adminV2Service";
 import { Card } from "@/components/ui/card";
 import { AppHeader } from "@/components/AppHeader";
-import { ArrowLeft, TrendingUp, Clock, Users, Zap } from "lucide-react";
+import { ArrowLeft, TrendingUp, Clock, Users, Zap, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnalyticsData {
@@ -13,8 +14,17 @@ interface AnalyticsData {
   peak_usage_time: string;
 }
 
+interface EnhancedMetrics {
+  retention_7day: number;
+  avg_sessions_per_user: number;
+  peak_hours: Array<{ hour: number; sessions: number }>;
+  session_trends: Array<{ date: string; sessions: number }>;
+  inactive_users_count: number;
+}
+
 export default function AdminAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [enhanced, setEnhanced] = useState<EnhancedMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,8 +33,26 @@ export default function AdminAnalytics() {
 
   const loadAnalytics = async () => {
     try {
+      setLoading(true);
+      
+      // Load V1 analytics
       const data = await adminService.getAnalytics();
       setAnalytics(data);
+
+      // Load V2 advanced analytics
+      const retention = await advancedAnalyticsService.getRetention(7);
+      const avgSessions = await advancedAnalyticsService.getAverageSessionsPerUser();
+      const peakHours = await advancedAnalyticsService.getPeakHours();
+      const trends = await advancedAnalyticsService.getSessionTrends();
+      const inactiveUsers = await advancedAnalyticsService.getInactiveUsers(7);
+
+      setEnhanced({
+        retention_7day: retention,
+        avg_sessions_per_user: avgSessions,
+        peak_hours: peakHours,
+        session_trends: trends,
+        inactive_users_count: inactiveUsers.length,
+      });
     } catch (error) {
       console.error("Error loading analytics:", error);
       toast.error("Failed to load analytics");
@@ -49,118 +77,143 @@ export default function AdminAnalytics() {
       <AppHeader />
       <main className="container py-8">
         <div className="mb-8">
-          <Link to="/admin" className="flex items-center gap-2 text-primary mb-4">
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+          >
             <ArrowLeft className="h-4 w-4" />
-            Back to Admin
+            Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground mt-2">System statistics and insights</p>
+          <h1 className="text-3xl font-bold">Advanced Analytics</h1>
+          <p className="text-muted-foreground mt-2">System metrics and user behavior insights</p>
         </div>
 
-        {/* Analytics Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <AnalyticsCard
-            title="Daily Active Users"
-            value={analytics?.daily_active_users || 0}
-            icon={<Users className="h-6 w-6" />}
-            trend="+12%"
-          />
-          <AnalyticsCard
-            title="Total Sessions"
-            value={analytics?.total_sessions || 0}
-            icon={<Zap className="h-6 w-6" />}
-            trend="+23%"
-          />
-          <AnalyticsCard
-            title="Avg Session Duration"
-            value={`${analytics?.avg_session_duration || 0}m`}
-            icon={<Clock className="h-6 w-6" />}
-            trend="+5%"
-          />
-          <AnalyticsCard
-            title="Peak Usage Time"
-            value={analytics?.peak_usage_time || "N/A"}
-            icon={<TrendingUp className="h-6 w-6" />}
-            trend="2-4 PM"
-          />
-        </div>
+        {/* V1 Metrics */}
+        {analytics && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Daily Active Users</p>
+                  <p className="text-3xl font-bold mt-2">{analytics.daily_active_users}</p>
+                </div>
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+            </Card>
 
-        {/* Detailed Metrics */}
-        <Card className="bg-gradient-card border-border/60 p-8 shadow-card mt-8">
-          <h2 className="text-2xl font-semibold mb-6">Detailed Metrics</h2>
-          <div className="grid gap-8 md:grid-cols-2">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">User Engagement</h3>
-              <div className="space-y-3">
-                <MetricRow label="Daily Active Users" value={analytics?.daily_active_users || 0} />
-                <MetricRow label="Total Sessions" value={analytics?.total_sessions || 0} />
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Sessions</p>
+                  <p className="text-3xl font-bold mt-2">{analytics.total_sessions}</p>
+                </div>
+                <Activity className="h-5 w-5 text-primary" />
               </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Session Metrics</h3>
-              <div className="space-y-3">
-                <MetricRow
-                  label="Average Duration"
-                  value={`${analytics?.avg_session_duration || 0} minutes`}
-                />
-                <MetricRow label="Peak Usage Time" value={analytics?.peak_usage_time || "N/A"} />
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg Session Duration</p>
+                  <p className="text-3xl font-bold mt-2">{analytics.avg_session_duration}m</p>
+                </div>
+                <Clock className="h-5 w-5 text-primary" />
               </div>
-            </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Peak Usage Time</p>
+                  <p className="text-3xl font-bold mt-2">{analytics.peak_usage_time}</p>
+                </div>
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+            </Card>
           </div>
-        </Card>
+        )}
 
-        {/* Info Cards */}
-        <div className="grid gap-6 md:grid-cols-2 mt-8">
-          <Card className="bg-gradient-card border-border/60 p-6 shadow-card">
-            <h3 className="font-semibold mb-2">User Growth</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Track the growth of your user base over time
-            </p>
-            <div className="text-2xl font-bold">Trending Up</div>
-          </Card>
-          <Card className="bg-gradient-card border-border/60 p-6 shadow-card">
-            <h3 className="font-semibold mb-2">Session Trends</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Monitor how session patterns change throughout the week
-            </p>
-            <div className="text-2xl font-bold">Consistent</div>
-          </Card>
-        </div>
+        {/* V2 Advanced Metrics */}
+        {enhanced && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">7-Day Retention</h3>
+                <p className="text-4xl font-bold text-primary">{enhanced.retention_7day}</p>
+                <p className="text-sm text-muted-foreground mt-2">Users returning after first week</p>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Avg Sessions Per User</h3>
+                <p className="text-4xl font-bold text-primary">{enhanced.avg_sessions_per_user.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground mt-2">Overall engagement metric</p>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Inactive Users (7 days)</h3>
+                <p className="text-4xl font-bold text-orange-500">{enhanced.inactive_users_count}</p>
+                <p className="text-sm text-muted-foreground mt-2">Users with no recent activity</p>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Peak Activity Hour</h3>
+                <p className="text-4xl font-bold text-blue-500">
+                  {enhanced.peak_hours[0]?.hour || 0}:00
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {enhanced.peak_hours[0]?.sessions || 0} sessions
+                </p>
+              </Card>
+            </div>
+
+            {/* Peak Hours Chart */}
+            {enhanced.peak_hours.length > 0 && (
+              <Card className="p-6 mb-8">
+                <h3 className="font-semibold mb-4">Peak Hours Distribution</h3>
+                <div className="space-y-2">
+                  {enhanced.peak_hours.slice(0, 5).map((hour) => (
+                    <div key={hour.hour} className="flex items-center gap-4">
+                      <span className="text-sm w-12">{hour.hour}:00</span>
+                      <div className="flex-1 h-8 bg-primary/20 rounded flex items-center" 
+                        style={{ width: `${(hour.sessions / (enhanced.peak_hours[0]?.sessions || 1)) * 100}%` }}>
+                        <span className="text-xs font-semibold ml-2">{hour.sessions}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Session Trends */}
+            {enhanced.session_trends.length > 0 && (
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">30-Day Session Trends</h3>
+                <div className="text-sm text-muted-foreground mb-4">
+                  {enhanced.session_trends.length} days tracked
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2">Date</th>
+                        <th className="text-left py-2">Sessions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enhanced.session_trends.slice(-7).map((trend) => (
+                        <tr key={trend.date} className="border-b border-border/50">
+                          <td className="py-2">{trend.date}</td>
+                          <td className="py-2 font-semibold">{trend.sessions}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
       </main>
-    </div>
-  );
-}
-
-function AnalyticsCard({
-  title,
-  value,
-  icon,
-  trend,
-}: {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  trend: string;
-}) {
-  return (
-    <Card className="bg-gradient-card border-border/60 p-6 shadow-card">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm text-muted-foreground uppercase tracking-wide">{title}</span>
-        <div className="text-primary opacity-50">{icon}</div>
-      </div>
-      <div className="flex items-baseline justify-between">
-        <div className="text-2xl font-bold">{value}</div>
-        <span className="text-xs text-success">{trend}</span>
-      </div>
-    </Card>
-  );
-}
-
-function MetricRow({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-border/40 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
     </div>
   );
 }

@@ -20,6 +20,9 @@ import AdminUsers from "./pages/AdminUsers.tsx";
 import AdminRooms from "./pages/AdminRooms.tsx";
 import AdminLive from "./pages/AdminLive.tsx";
 import AdminAnalytics from "./pages/AdminAnalytics.tsx";
+import AdminReports from "./pages/AdminReports.tsx";
+import AdminLogs from "./pages/AdminLogs.tsx";
+import AdminSettings from "./pages/AdminSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -92,6 +95,30 @@ const App = () => (
                 element={
                   <AdminRoute>
                     <AdminAnalytics />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/reports"
+                element={
+                  <AdminRoute>
+                    <AdminReports />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/logs"
+                element={
+                  <AdminRoute>
+                    <AdminLogs />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettings />
                   </AdminRoute>
                 }
               />

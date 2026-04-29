@@ -4,7 +4,7 @@ import { adminService, UserStats } from "@/services/adminService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
-import { Users, Zap, BookOpen, BarChart3 } from "lucide-react";
+import { Users, Zap, BookOpen, BarChart3, AlertCircle, FileText, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Admin() {
@@ -90,6 +90,27 @@ export default function Admin() {
             href="/admin/analytics"
             icon={<BarChart3 className="h-6 w-6" />}
           />
+          <AdminCard
+            title="Moderation"
+            description="Review and resolve user reports"
+            href="/admin/reports"
+            icon={<AlertCircle className="h-6 w-6" />}
+            badge="V2"
+          />
+          <AdminCard
+            title="Audit Logs"
+            description="Track all admin actions and events"
+            href="/admin/logs"
+            icon={<FileText className="h-6 w-6" />}
+            badge="V2"
+          />
+          <AdminCard
+            title="System Settings"
+            description="Configure system-wide parameters"
+            href="/admin/settings"
+            icon={<Settings className="h-6 w-6" />}
+            badge="V2"
+          />
         </div>
       </main>
     </div>
@@ -125,11 +146,13 @@ function AdminCard({
   description,
   href,
   icon,
+  badge,
 }: {
   title: string;
   description: string;
   href: string;
   icon: React.ReactNode;
+  badge?: string;
 }) {
   return (
     <Link to={href}>
@@ -137,7 +160,14 @@ function AdminCard({
         <div className="flex items-start gap-4">
           <div className="text-primary">{icon}</div>
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">{title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">{title}</h3>
+              {badge && (
+                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
+                  {badge}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           </div>
         </div>
