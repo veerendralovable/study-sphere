@@ -5,6 +5,6 @@ import Dashboard from "./Dashboard";
 export default function Index() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   return <Dashboard />;
 }
