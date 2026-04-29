@@ -5,10 +5,12 @@ import { roomService } from "@/services/roomService";
 import { roomMemberService } from "@/services/roomMemberService";
 import { timerService } from "@/services/timerService";
 import { studySessionService } from "@/services/studySessionService";
+import { statsService, UserStats } from "@/services/statsService";
 import { useRoomMembers } from "@/hooks/useRoomMembers";
 import { useRoomTimer } from "@/hooks/useRoomTimer";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
+import { SessionCompletion } from "@/components/SessionCompletion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +33,7 @@ import {
   KeyRound,
   Copy,
   ShieldAlert,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +57,11 @@ export default function Room() {
   const [acting, setActing] = useState(false);
   const [duration, setDuration] = useState(25);
   const [togglingExam, setTogglingExam] = useState(false);
+
+  // Session completion state
+  const [sessionCompleteOpen, setSessionCompleteOpen] = useState(false);
+  const [completedSessionSeconds, setCompletedSessionSeconds] = useState(0);
+  const [completionStats, setCompletionStats] = useState<UserStats | null>(null);
 
   const sessionRef = useRef<{ id: string; start_time: string } | null>(null);
 
@@ -152,24 +160,45 @@ export default function Room() {
   const leave = async () => {
     if (!user || !id) return;
     if (examLocked) {
-      toast.error("Exam in progress — you can't leave right now");
+      toast.error("Exam in progress -- you can't leave right now");
       return;
     }
     setLeaving(true);
     try {
       const s = sessionRef.current;
+      let sessionSeconds = 0;
       if (s) {
+        const end = new Date();
+        sessionSeconds = Math.max(0, Math.floor((end.getTime() - new Date(s.start_time).getTime()) / 1000));
         await studySessionService.end(s.id, s.start_time).catch(() => {});
         sessionRef.current = null;
       }
       await roomMemberService.leave(user.id, id);
-      toast.success("Left room");
-      navigate("/");
+
+      // Fetch fresh stats for the completion modal
+      if (user) {
+        try {
+          const freshStats = await statsService.getForUser(user.id);
+          setCompletionStats(freshStats);
+          setCompletedSessionSeconds(sessionSeconds);
+          setSessionCompleteOpen(true);
+        } catch {
+          toast.success("Left room");
+          navigate("/");
+        }
+      } else {
+        toast.success("Left room");
+        navigate("/");
+      }
     } catch (e: any) {
       toast.error(e.message);
-    } finally {
       setLeaving(false);
     }
+  };
+
+  const handleSessionCompleteClose = () => {
+    setSessionCompleteOpen(false);
+    navigate("/");
   };
 
   const startTimer = async () => {
@@ -226,11 +255,17 @@ export default function Room() {
     toast.success("Code copied");
   };
 
+  // Circular timer calculations
+  const totalDuration = timer?.duration ?? duration * 60;
+  const progress = totalDuration > 0 ? remaining / totalDuration : 0;
+  const circumference = 2 * Math.PI * 120;
+  const strokeDashoffset = circumference * (1 - progress);
+
   if (loadingRoom) {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader />
-        <div className="container py-8 text-sm text-muted-foreground">Loading room…</div>
+        <div className="container py-8 text-sm text-muted-foreground">Loading room...</div>
       </div>
     );
   }
@@ -260,7 +295,7 @@ export default function Room() {
                 maxLength={12}
               />
               <Button onClick={joinWithCode} disabled={joining}>
-                {joining ? "…" : "Join"}
+                {joining ? "..." : "Join"}
               </Button>
             </div>
           </Card>
@@ -282,7 +317,7 @@ export default function Room() {
               <span className="text-destructive/80">
                 {isCreator
                   ? "Members can't leave or control the timer."
-                  : "Stay focused — controls are locked by the room creator."}
+                  : "Stay focused -- controls are locked by the room creator."}
               </span>
             </div>
           </div>
@@ -311,7 +346,7 @@ export default function Room() {
               {room?.room_code && (
                 <button
                   onClick={copyCode}
-                  className="mt-1 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  className="mt-1 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <KeyRound className="h-3.5 w-3.5" />
                   <span className="font-mono">{room.room_code}</span>
@@ -342,12 +377,12 @@ export default function Room() {
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  <TooltipContent>Exam in progress — leaving is disabled</TooltipContent>
+                  <TooltipContent>Exam in progress -- leaving is disabled</TooltipContent>
                 </Tooltip>
               ) : (
                 <Button variant="outline" onClick={leave} disabled={leaving}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  {leaving ? "Leaving…" : "Leave room"}
+                  {leaving ? "Leaving..." : "Leave room"}
                 </Button>
               )}
             </div>
@@ -357,9 +392,42 @@ export default function Room() {
             {/* Timer */}
             <Card className="bg-gradient-card border-border/60 p-8 shadow-card">
               <h2 className="text-sm uppercase tracking-wide text-muted-foreground">Shared timer</h2>
-              <div className="my-6 text-center font-mono text-7xl font-semibold tabular-nums">
-                {fmtMMSS(remaining)}
+
+              <div className="my-6 flex items-center justify-center">
+                <div className="relative">
+                  <svg width="260" height="260" viewBox="0 0 260 260" className="-rotate-90">
+                    <circle
+                      cx="130"
+                      cy="130"
+                      r="120"
+                      fill="none"
+                      stroke="hsl(var(--secondary))"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="130"
+                      cy="130"
+                      r="120"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      style={{ transition: "stroke-dashoffset 500ms ease-out" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="font-mono text-6xl font-semibold tabular-nums">
+                      {fmtMMSS(remaining)}
+                    </span>
+                    {timer?.is_active && (
+                      <span className="mt-1 text-xs text-primary">Synced for everyone</span>
+                    )}
+                  </div>
+                </div>
               </div>
+
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2">
                   <label htmlFor="duration" className="text-sm text-muted-foreground">Duration (min)</label>
@@ -389,13 +457,9 @@ export default function Room() {
                   <Square className="mr-2 h-4 w-4" /> Stop
                 </Button>
               </div>
-              {timer?.is_active && (
-                <p className="mt-4 text-center text-xs text-muted-foreground">
-                  Synced for everyone in the room
-                </p>
-              )}
+
               {examLocked && (
-                <p className="mt-2 text-center text-xs text-destructive">
+                <p className="mt-4 text-center text-xs text-destructive">
                   Timer controls are locked during exam mode.
                 </p>
               )}
@@ -403,43 +467,77 @@ export default function Room() {
 
             {/* Members */}
             <Card className="bg-gradient-card border-border/60 p-6 shadow-card">
-              <h2 className="mb-3 text-sm uppercase tracking-wide text-muted-foreground">
+              <h2 className="mb-4 text-sm uppercase tracking-wide text-muted-foreground">
                 Active members ({members.length})
               </h2>
               {members.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No active members</p>
               ) : (
                 <ul className="space-y-2">
-                  {members.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex items-center justify-between rounded-lg bg-secondary/40 p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">
-                          {m.profile?.name ?? m.profile?.email ?? "Member"}
+                  {members.map((m) => {
+                    const isCurrentUser = m.user_id === user?.id;
+                    const isMemberCreator = m.role === "creator";
+                    return (
+                      <li
+                        key={m.id}
+                        className={`flex items-center justify-between rounded-lg p-3 transition-base ${
+                          isCurrentUser
+                            ? "bg-primary/10 border border-primary/20"
+                            : "bg-secondary/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                            isCurrentUser
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}>
+                            {(m.profile?.name ?? "M")[0].toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`truncate text-sm font-medium ${isCurrentUser ? "text-primary" : ""}`}>
+                                {m.profile?.name ?? m.profile?.email ?? "Member"}
+                              </span>
+                              {isCurrentUser && (
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-primary/70">You</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                              {isMemberCreator && <Crown className="h-3 w-3 text-warning" />}
+                              <span>{isMemberCreator ? "Creator" : "Member"}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {m.role === "creator" ? "Creator" : "Member"}
-                        </div>
-                      </div>
-                      {isCreator && m.user_id !== user?.id && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => removeMember(m.user_id)}
-                          title="Remove member"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </li>
-                  ))}
+                        {isCreator && m.user_id !== user?.id && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeMember(m.user_id)}
+                            title="Remove member"
+                            className="h-8 w-8 shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Card>
           </div>
         </main>
+
+        <SessionCompletion
+          open={sessionCompleteOpen}
+          onClose={handleSessionCompleteClose}
+          sessionSeconds={completedSessionSeconds}
+          todaySeconds={completionStats?.todaySeconds ?? 0}
+          sessionCount={completionStats?.sessionCount ?? 0}
+          currentStreak={completionStats?.currentStreak ?? 0}
+          badges={completionStats?.badges ?? []}
+        />
       </div>
     </TooltipProvider>
   );

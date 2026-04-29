@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AppHeader } from "@/components/AppHeader";
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { RoomCard } from "@/components/RoomCard";
-import { Plus, Search, KeyRound, Flame, Clock, BarChart3 } from "lucide-react";
+import { DailyGoal } from "@/components/DailyGoal";
+import { Plus, Search, KeyRound, Flame, Clock, ChartBar as BarChart3, Zap, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface RoomWithMeta {
@@ -154,7 +155,6 @@ export default function Dashboard() {
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setJoiningCode(true);
     try {
-      // Server-side: validates code, enforces removed-member block, inserts membership.
       const membership = await roomMemberService.joinByCode(parsed.data);
       toast.success("Joined room");
       setCode("");
@@ -170,12 +170,34 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <AppHeader onProfile={() => setProfileOpen(true)} />
       <main className="container py-8">
-        {/* Stats */}
-        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={<Clock className="h-4 w-4" />} label="Today" value={stats ? fmtSeconds(stats.todaySeconds) : "—"} />
-          <StatCard icon={<BarChart3 className="h-4 w-4" />} label="Total studied" value={stats ? fmtSeconds(stats.totalSeconds) : "—"} />
-          <StatCard icon={<Flame className="h-4 w-4" />} label="Current streak" value={stats ? `${stats.currentStreak} day${stats.currentStreak === 1 ? "" : "s"}` : "—"} />
-          <StatCard icon={<BarChart3 className="h-4 w-4" />} label="Sessions" value={stats?.sessionCount ?? "—"} extra={stats?.badges.join(" · ")} />
+        {/* Stats Row */}
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={<Clock className="h-4 w-4" />}
+            label="Today"
+            value={stats ? fmtSeconds(stats.todaySeconds) : "—"}
+          />
+          <StatCard
+            icon={<BarChart3 className="h-4 w-4" />}
+            label="Total studied"
+            value={stats ? fmtSeconds(stats.totalSeconds) : "—"}
+          />
+          <StatCard
+            icon={<Flame className="h-4 w-4" />}
+            label="Current streak"
+            value={stats ? `${stats.currentStreak} day${stats.currentStreak === 1 ? "" : "s"}` : "—"}
+          />
+          <StatCard
+            icon={<Zap className="h-4 w-4" />}
+            label="Sessions"
+            value={stats?.sessionCount ?? "—"}
+            extra={stats?.badges.join(" · ")}
+          />
+        </section>
+
+        {/* Daily Goal */}
+        <section className="mb-8">
+          <DailyGoal todaySeconds={stats?.todaySeconds ?? 0} />
         </section>
 
         {/* Actions */}
@@ -203,7 +225,7 @@ export default function Dashboard() {
                   <Switch id="room-private" checked={newPrivate} onCheckedChange={setNewPrivate} />
                 </div>
                 <Button className="w-full" onClick={createRoom} disabled={creating} variant="hero">
-                  {creating ? "Creating…" : "Create"}
+                  {creating ? "Creating..." : "Create"}
                 </Button>
               </div>
             </DialogContent>
@@ -214,7 +236,7 @@ export default function Dashboard() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search public rooms…"
+              placeholder="Search public rooms..."
               className="border-0 px-0 focus-visible:ring-0"
             />
           </div>
@@ -229,14 +251,16 @@ export default function Dashboard() {
               className="w-32 border-0 px-0 focus-visible:ring-0"
             />
             <Button size="sm" onClick={joinByCode} disabled={joiningCode || !code}>
-              {joiningCode ? "…" : "Join"}
+              {joiningCode ? "..." : "Join"}
             </Button>
           </div>
         </section>
 
         <RoomSection
           title="Your rooms"
-          empty="You haven't created a room yet. Try creating one!"
+          empty="No rooms yet"
+          emptyCta="Create your first room"
+          onCta={() => setCreateOpen(true)}
           rooms={yourRooms}
           loading={loading}
           isYours
@@ -280,11 +304,11 @@ function StatCard({
   extra?: string;
 }) {
   return (
-    <Card className="bg-gradient-card border-border/60 p-5 shadow-card">
+    <Card className="bg-gradient-card border-border/60 p-5 shadow-card transition-base hover:border-primary/30 hover:shadow-glow">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
         {icon} {label}
       </div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
       {extra && <div className="mt-1 text-xs text-primary">{extra}</div>}
     </Card>
   );
@@ -293,6 +317,8 @@ function StatCard({
 function RoomSection({
   title,
   empty,
+  emptyCta,
+  onCta,
   rooms,
   loading,
   isYours,
@@ -302,6 +328,8 @@ function RoomSection({
 }: {
   title: string;
   empty: string;
+  emptyCta?: string;
+  onCta?: () => void;
   rooms: RoomWithMeta[];
   loading: boolean;
   isYours?: boolean;
@@ -311,12 +339,24 @@ function RoomSection({
 }) {
   return (
     <section className="mb-10">
-      <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+      <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="h-36 animate-pulse bg-gradient-card border-border/60 p-5" />
+          ))}
+        </div>
       ) : rooms.length === 0 ? (
-        <Card className="border-dashed border-border/60 bg-transparent p-8 text-center text-sm text-muted-foreground">
-          {empty}
+        <Card className="border-dashed border-border/60 bg-transparent p-10 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/60">
+            <Users className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">{empty}</p>
+          {emptyCta && onCta && (
+            <Button variant="hero" size="sm" className="mt-4" onClick={onCta}>
+              <Plus className="mr-2 h-4 w-4" /> {emptyCta}
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
