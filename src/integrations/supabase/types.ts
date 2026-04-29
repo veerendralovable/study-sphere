@@ -69,6 +69,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "room_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -81,6 +88,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          exam_mode: boolean
           id: string
           is_private: boolean
           name: string
@@ -89,6 +97,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          exam_mode?: boolean
           id?: string
           is_private?: boolean
           name: string
@@ -97,6 +106,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          exam_mode?: boolean
           id?: string
           is_private?: boolean
           name?: string
@@ -149,6 +159,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "study_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "study_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -187,11 +204,52 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "timers_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      rooms_public: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          exam_mode: boolean | null
+          id: string | null
+          is_private: boolean | null
+          name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          exam_mode?: boolean | null
+          id?: string | null
+          is_private?: boolean | null
+          name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          exam_mode?: boolean | null
+          id?: string | null
+          is_private?: boolean | null
+          name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       is_room_creator: {
