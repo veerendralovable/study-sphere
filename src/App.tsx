@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Login from "./pages/Login.tsx";
@@ -14,6 +15,14 @@ import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Room from "./pages/Room.tsx";
+import Admin from "./pages/Admin.tsx";
+import AdminUsers from "./pages/AdminUsers.tsx";
+import AdminRooms from "./pages/AdminRooms.tsx";
+import AdminLive from "./pages/AdminLive.tsx";
+import AdminAnalytics from "./pages/AdminAnalytics.tsx";
+import AdminReports from "./pages/AdminReports.tsx";
+import AdminLogs from "./pages/AdminLogs.tsx";
+import AdminSettings from "./pages/AdminSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -47,6 +56,70 @@ const App = () => (
                   <ProtectedRoute>
                     <Room />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <Admin />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/rooms"
+                element={
+                  <AdminRoute>
+                    <AdminRooms />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/live"
+                element={
+                  <AdminRoute>
+                    <AdminLive />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <AdminRoute>
+                    <AdminAnalytics />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/reports"
+                element={
+                  <AdminRoute>
+                    <AdminReports />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/logs"
+                element={
+                  <AdminRoute>
+                    <AdminLogs />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettings />
+                  </AdminRoute>
                 }
               />
               <Route path="/404" element={<NotFound />} />

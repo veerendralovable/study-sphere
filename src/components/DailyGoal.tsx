@@ -33,14 +33,14 @@ export function DailyGoal({ todaySeconds }: DailyGoalProps) {
       : "In progress";
 
   return (
-    <Card className="bg-gradient-card border-border/60 p-5 shadow-card transition-base hover:border-primary/30">
+    <Card className="group bg-gradient-card border-border/60 p-5 shadow-card transition-base hover:border-primary/30 hover:shadow-glow">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-primary">
           <Target className="h-4 w-4 text-primary" />
           Daily Goal
         </div>
         <span
-          className={`text-xs font-medium ${
+          className={`text-xs font-medium transition-colors ${
             completed
               ? "text-success"
               : todaySeconds === 0
@@ -63,7 +63,7 @@ export function DailyGoal({ todaySeconds }: DailyGoalProps) {
       <Progress value={animatedPct} className="mb-3 h-2.5" />
 
       {completed && (
-        <div className="flex items-center gap-2 text-sm font-medium text-success">
+        <div className="flex items-center gap-2 text-sm font-medium text-success animate-in fade-in slide-in-from-bottom-2 duration-500">
           <CheckCircle2 className="h-4 w-4" />
           Goal completed!
         </div>

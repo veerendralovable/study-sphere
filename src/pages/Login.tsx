@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
 import { loginSchema } from "@/lib/validation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
   if (user) return <Navigate to={returnTo} replace />;
 
   const submit = async (e: React.FormEvent) => {

@@ -95,7 +95,7 @@ export function SessionCompletion({
           <p className="mt-1 text-sm text-muted-foreground">Great work staying focused!</p>
         </div>
 
-        <div className="mb-6 space-y-3">
+        <div className="mb-6 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
           <StatRow icon={<Clock className="h-4 w-4 text-primary" />} label="This session" value={fmtDuration(sessionSeconds)} />
           <StatRow icon={<Clock className="h-4 w-4 text-primary" />} label="Today total" value={fmtDuration(todaySeconds)} />
           <StatRow icon={<BarChart3 className="h-4 w-4 text-primary" />} label="Sessions today" value={String(sessionCount)} />
@@ -103,11 +103,12 @@ export function SessionCompletion({
         </div>
 
         {badges.length > 0 && (
-          <div className="mb-6 flex flex-wrap justify-center gap-2">
-            {badges.map((b) => (
+          <div className="mb-6 flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-200">
+            {badges.map((b, i) => (
               <span
                 key={b}
-                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary animate-in fade-in scale-in-95 duration-500"
+                style={{ animationDelay: `${50 + i * 75}ms` }}
               >
                 {b}
               </span>
