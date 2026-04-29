@@ -23,7 +23,6 @@ interface RoomWithMeta {
   name: string;
   is_private: boolean;
   created_by: string | null;
-  room_code: string | null;
   memberCount: number;
   timerActive: boolean;
 }
@@ -74,7 +73,6 @@ export default function Dashboard() {
           name: r.name,
           is_private: r.is_private,
           created_by: r.created_by,
-          room_code: r.room_code,
           memberCount: counts[i] ?? 0,
           timerActive: timerMap.get(r.id) === true,
         }))
