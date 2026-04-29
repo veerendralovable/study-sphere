@@ -380,7 +380,7 @@ export default function Room() {
                   <TooltipContent>Exam in progress -- leaving is disabled</TooltipContent>
                 </Tooltip>
               ) : (
-                <Button variant="outline" onClick={leave} disabled={leaving}>
+                <Button variant="outline" onClick={leave} disabled={leaving} className="transition-all active:scale-95">
                   <LogOut className="mr-2 h-4 w-4" />
                   {leaving ? "Leaving..." : "Leave room"}
                 </Button>
@@ -390,8 +390,8 @@ export default function Room() {
 
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             {/* Timer */}
-            <Card className="bg-gradient-card border-border/60 p-8 shadow-card">
-              <h2 className="text-sm uppercase tracking-wide text-muted-foreground">Shared timer</h2>
+            <Card className="bg-gradient-card border-border/60 p-8 shadow-card transition-base hover:border-primary/30 hover:shadow-glow">
+              <h2 className="text-sm uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary">Shared timer</h2>
 
               <div className="my-6 flex items-center justify-center">
                 <div className="relative">
@@ -446,6 +446,7 @@ export default function Room() {
                   variant="hero"
                   onClick={startTimer}
                   disabled={acting || !!timer?.is_active || examLocked}
+                  className="transition-all active:scale-95"
                 >
                   <Play className="mr-2 h-4 w-4" /> Start
                 </Button>
@@ -453,6 +454,7 @@ export default function Room() {
                   variant="outline"
                   onClick={stopTimer}
                   disabled={acting || !timer?.is_active || examLocked}
+                  className="transition-all active:scale-95"
                 >
                   <Square className="mr-2 h-4 w-4" /> Stop
                 </Button>
@@ -466,8 +468,8 @@ export default function Room() {
             </Card>
 
             {/* Members */}
-            <Card className="bg-gradient-card border-border/60 p-6 shadow-card">
-              <h2 className="mb-4 text-sm uppercase tracking-wide text-muted-foreground">
+            <Card className="bg-gradient-card border-border/60 p-6 shadow-card transition-base hover:border-primary/30 hover:shadow-glow">
+              <h2 className="mb-4 text-sm uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary">
                 Active members ({members.length})
               </h2>
               {members.length === 0 ? (
@@ -480,10 +482,10 @@ export default function Room() {
                     return (
                       <li
                         key={m.id}
-                        className={`flex items-center justify-between rounded-lg p-3 transition-base ${
+                        className={`flex items-center justify-between rounded-lg p-3 transition-all hover:shadow-glow ${
                           isCurrentUser
-                            ? "bg-primary/10 border border-primary/20"
-                            : "bg-secondary/40"
+                            ? "bg-primary/10 border border-primary/20 hover:border-primary/40"
+                            : "bg-secondary/40 hover:bg-secondary/60"
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -515,7 +517,7 @@ export default function Room() {
                             variant="ghost"
                             onClick={() => removeMember(m.user_id)}
                             title="Remove member"
-                            className="h-8 w-8 shrink-0"
+                            className="h-8 w-8 shrink-0 transition-all active:scale-95 hover:text-destructive"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>

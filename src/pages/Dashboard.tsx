@@ -16,6 +16,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { RoomCard } from "@/components/RoomCard";
 import { DailyGoal } from "@/components/DailyGoal";
+import { StatsCard } from "@/components/StatsCard";
 import { Plus, Search, KeyRound, Flame, Clock, ChartBar as BarChart3, Zap, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -172,22 +173,22 @@ export default function Dashboard() {
       <main className="container py-8">
         {/* Stats Row */}
         <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatsCard
             icon={<Clock className="h-4 w-4" />}
             label="Today"
             value={stats ? fmtSeconds(stats.todaySeconds) : "—"}
           />
-          <StatCard
+          <StatsCard
             icon={<BarChart3 className="h-4 w-4" />}
             label="Total studied"
             value={stats ? fmtSeconds(stats.totalSeconds) : "—"}
           />
-          <StatCard
+          <StatsCard
             icon={<Flame className="h-4 w-4" />}
             label="Current streak"
             value={stats ? `${stats.currentStreak} day${stats.currentStreak === 1 ? "" : "s"}` : "—"}
           />
-          <StatCard
+          <StatsCard
             icon={<Zap className="h-4 w-4" />}
             label="Sessions"
             value={stats?.sessionCount ?? "—"}
@@ -204,8 +205,8 @@ export default function Dashboard() {
         <section className="mb-8 flex flex-col gap-3 sm:flex-row">
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button variant="hero" className="sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" /> Create room
+              <Button variant="hero" className="sm:w-auto transition-all active:scale-95">
+                <Plus className="mr-2 h-4 w-4 transition-transform" /> Create room
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -224,7 +225,7 @@ export default function Dashboard() {
                   </div>
                   <Switch id="room-private" checked={newPrivate} onCheckedChange={setNewPrivate} />
                 </div>
-                <Button className="w-full" onClick={createRoom} disabled={creating} variant="hero">
+                <Button className="w-full transition-all active:scale-95" onClick={createRoom} disabled={creating} variant="hero">
                   {creating ? "Creating..." : "Create"}
                 </Button>
               </div>
@@ -250,7 +251,7 @@ export default function Dashboard() {
               maxLength={12}
               className="w-32 border-0 px-0 focus-visible:ring-0"
             />
-            <Button size="sm" onClick={joinByCode} disabled={joiningCode || !code}>
+            <Button size="sm" onClick={joinByCode} disabled={joiningCode || !code} className="transition-all active:scale-95">
               {joiningCode ? "..." : "Join"}
             </Button>
           </div>
@@ -289,28 +290,6 @@ export default function Dashboard() {
       </main>
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  extra,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  extra?: string;
-}) {
-  return (
-    <Card className="bg-gradient-card border-border/60 p-5 shadow-card transition-base hover:border-primary/30 hover:shadow-glow">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        {icon} {label}
-      </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
-      {extra && <div className="mt-1 text-xs text-primary">{extra}</div>}
-    </Card>
   );
 }
 
@@ -353,7 +332,7 @@ function RoomSection({
           </div>
           <p className="text-sm text-muted-foreground">{empty}</p>
           {emptyCta && onCta && (
-            <Button variant="hero" size="sm" className="mt-4" onClick={onCta}>
+            <Button variant="hero" size="sm" className="mt-4 transition-all active:scale-95" onClick={onCta}>
               <Plus className="mr-2 h-4 w-4" /> {emptyCta}
             </Button>
           )}

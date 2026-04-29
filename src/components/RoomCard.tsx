@@ -28,16 +28,16 @@ export function RoomCard({
   joining,
 }: RoomCardProps) {
   return (
-    <Card className="bg-gradient-card group flex flex-col gap-4 border-border/60 p-5 shadow-card transition-base hover:border-primary/40">
+    <Card className="bg-gradient-card group flex flex-col gap-4 border-border/60 p-5 shadow-card transition-base hover:border-primary/40 hover:shadow-glow">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">{name}</h3>
+          <h3 className="truncate text-lg font-semibold transition-colors group-hover:text-primary">{name}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 transition-colors group-hover:text-foreground">
               <Users className="h-3.5 w-3.5" /> {memberCount} active
             </span>
             {timerActive && (
-              <span className="inline-flex items-center gap-1 text-primary">
+              <span className="inline-flex items-center gap-1 text-primary animate-pulse">
                 <TimerIcon className="h-3.5 w-3.5" /> studying now
               </span>
             )}
@@ -54,13 +54,13 @@ export function RoomCard({
       </div>
       <div className="mt-auto flex items-center gap-2">
         {onJoin && (
-          <Button size="sm" variant="secondary" onClick={onJoin} disabled={joining}>
+          <Button size="sm" variant="secondary" onClick={onJoin} disabled={joining} className="transition-all">
             {joining ? "Joining…" : joinLabel}
           </Button>
         )}
-        <Button size="sm" variant="ghost" asChild>
+        <Button size="sm" variant="ghost" asChild className="transition-all group-hover:text-primary">
           <Link to={`/room/${id}`}>
-            Open <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            Open <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
           </Link>
         </Button>
       </div>

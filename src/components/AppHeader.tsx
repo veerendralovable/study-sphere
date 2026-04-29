@@ -20,21 +20,21 @@ export function AppHeader({ onProfile }: { onProfile?: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur transition-all">
       <div className="container flex h-14 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="rounded-lg bg-gradient-primary p-1.5 shadow-glow">
+        <Link to="/" className="group flex items-center gap-2 transition-opacity hover:opacity-80">
+          <div className="rounded-lg bg-gradient-primary p-1.5 shadow-glow transition-transform group-hover:scale-105">
             <GraduationCap className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold">StudySphere</span>
+          <span className="font-semibold transition-colors group-hover:text-primary">StudySphere</span>
         </Link>
         {user && (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onProfile}>
+            <Button variant="ghost" size="sm" onClick={onProfile} className="transition-all">
               <UserIcon className="mr-2 h-4 w-4" />
               Profile
             </Button>
-            <Button variant="ghost" size="sm" onClick={logout}>
+            <Button variant="ghost" size="sm" onClick={logout} className="transition-all">
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </Button>
