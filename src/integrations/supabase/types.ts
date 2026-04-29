@@ -202,6 +202,27 @@ export type Database = {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
+      join_private_room: {
+        Args: { _code: string; _room_id: string }
+        Returns: {
+          id: string
+          joined_at: string
+          role: string
+          room_id: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      shares_active_room: {
+        Args: { _target: string; _viewer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

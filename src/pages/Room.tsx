@@ -100,16 +100,13 @@ export default function Room() {
 
   const joinWithCode = async () => {
     if (!user || !room) return;
-    if (codeInput.trim().toUpperCase() !== (room.room_code ?? "")) {
-      toast.error("Incorrect room code");
-      return;
-    }
     setJoining(true);
     try {
-      await roomMemberService.join(user.id, room.id);
+      // Server-side validation of code via SECURITY DEFINER RPC
+      await roomMemberService.joinPrivate(room.id, codeInput.trim());
       setAccessGranted(true);
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message ?? "Failed to join");
     } finally {
       setJoining(false);
     }

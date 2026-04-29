@@ -4,6 +4,7 @@ export type MemberStatus = "active" | "left" | "removed";
 
 export const roomMemberService = {
   async join(userId: string, roomId: string, role: "member" | "creator" = "member") {
+    // Public-room join (or creator self-insert). Private rooms must use joinPrivate().
     const { data, error } = await supabase
       .from("room_members")
       .upsert(
@@ -12,6 +13,15 @@ export const roomMemberService = {
       )
       .select()
       .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  async joinPrivate(roomId: string, code: string) {
+    const { data, error } = await supabase.rpc("join_private_room", {
+      _room_id: roomId,
+      _code: code,
+    });
     if (error) throw error;
     return data;
   },
