@@ -79,13 +79,22 @@ export const adminService = {
           id,
           name,
           email,
-          role,
           status,
           created_at
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+
+      // Fetch all roles in one query
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap = new Map<string, string>();
+      (roles || []).forEach((r: any) => {
+        // 'admin' wins over other roles for display
+        if (r.role === "admin" || !roleMap.has(r.user_id)) {
+          roleMap.set(r.user_id, r.role);
+        }
+      });
 
       // Get session counts for each user
       const usersWithStats = await Promise.all(
@@ -97,6 +106,7 @@ export const adminService = {
 
           return {
             ...user,
+            role: roleMap.get(user.id) || "user",
             total_sessions: count || 0,
           };
         })
@@ -128,6 +138,15 @@ export const adminService = {
       const totalStudyTime = sessions?.reduce((sum, s) => sum + (s.duration || 0), 0) || 0;
       const sessionsCount = sessions?.length || 0;
 
+      // Get role from user_roles
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .order("role", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
       // Get streak (simplified)
       const currentStreak = 0; // Would need more complex logic for real streak calculation
 
@@ -135,8 +154,8 @@ export const adminService = {
         id: user.id,
         name: user.name || "",
         email: user.email || "",
-        role: user.role || "student",
-        status: user.status || "active",
+        role: roleRow?.role || "user",
+        status: (user as any).status || "active",
         created_at: user.created_at,
         total_study_time: totalStudyTime,
         sessions_count: sessionsCount,
@@ -148,12 +167,18 @@ export const adminService = {
     }
   },
 
-  async updateUserRole(userId: string, newRole: string) {
+  async updateUserRole(userId: string, newRole: "admin" | "moderator" | "user") {
     try {
+      // Remove existing roles, insert the new one
+      const { error: delErr } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+      if (delErr) throw delErr;
+
       const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId);
+        .from("user_roles")
+        .insert({ user_id: userId, role: newRole });
 
       if (error) throw error;
     } catch (error) {

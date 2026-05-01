@@ -112,7 +112,7 @@ export default function AdminSettings() {
                       {setting.description}
                     </p>
                   )}
-                  {setting.type === "boolean" ? (
+                  {(setting.value === "true" || setting.value === "false") ? (
                     <select
                       value={editedSettings[setting.key]}
                       onChange={(e) =>
@@ -125,7 +125,7 @@ export default function AdminSettings() {
                     </select>
                   ) : (
                     <Input
-                      type={setting.type === "number" ? "number" : "text"}
+                      type={/^\d+$/.test(setting.value || "") ? "number" : "text"}
                       value={editedSettings[setting.key]}
                       onChange={(e) =>
                         handleSettingChange(setting.key, e.target.value)
