@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut, User as UserIcon, Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { isAdmin as checkIsAdmin } from "@/lib/roles";
 import { toast } from "sonner";
 
 export function AppHeader({ onProfile }: { onProfile?: () => void }) {
@@ -18,22 +18,14 @@ export function AppHeader({ onProfile }: { onProfile?: () => void }) {
       return;
     }
 
-    const checkAdminRole = async () => {
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        setIsAdmin(data?.role === "admin");
-      } catch (error) {
-        console.error("Error checking admin role:", error);
-        setIsAdmin(false);
-      }
+    let cancelled = false;
+    (async () => {
+      const result = await checkIsAdmin(user.id);
+      if (!cancelled) setIsAdmin(result);
+    })();
+    return () => {
+      cancelled = true;
     };
-
-    checkAdminRole();
   }, [user]);
 
   const logout = async () => {

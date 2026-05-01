@@ -278,7 +278,7 @@ export const advancedAnalyticsService = {
     if (userError) throw userError;
 
     const sessions = sessionData?.length || 0;
-    const users = userCount || 1;
+    const users = (userCount as unknown as number) || 1;
 
     return sessions / users;
   },
@@ -290,7 +290,7 @@ export const advancedAnalyticsService = {
         `
         id,
         name,
-        code,
+        room_code,
         room_members(count)
       `
       )

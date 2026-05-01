@@ -1,7 +1,7 @@
 import { useEffect, useState, ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { isAdmin as checkIsAdmin } from "@/lib/roles";
 import { LoadingScreen } from "./LoadingScreen";
 
 interface AdminRouteProps {
@@ -18,26 +18,17 @@ export function AdminRoute({ children }: AdminRouteProps) {
       setLoading(false);
       return;
     }
-
-    const checkAdminRole = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (error) throw error;
-        setIsAdmin(data?.role === "admin");
-      } catch (error) {
-        console.error("Error checking admin role:", error);
-        setIsAdmin(false);
-      } finally {
+    let cancelled = false;
+    (async () => {
+      const result = await checkIsAdmin(user.id);
+      if (!cancelled) {
+        setIsAdmin(result);
         setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-
-    checkAdminRole();
   }, [user]);
 
   if (authLoading || loading) return <LoadingScreen />;
