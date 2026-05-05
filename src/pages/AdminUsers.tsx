@@ -187,15 +187,27 @@ export default function AdminUsers() {
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeactivate(user.id)}
-                          disabled={user.status === "blocked"}
-                          className="h-8"
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
+                        {user.status === "blocked" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleReactivate(user.id)}
+                            className="h-8"
+                            title="Reactivate user"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeactivate(user.id)}
+                            className="h-8"
+                            title="Deactivate user"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
