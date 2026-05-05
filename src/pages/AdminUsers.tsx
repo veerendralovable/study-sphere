@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppHeader } from "@/components/AppHeader";
-import { ArrowLeft, Shield, UserX } from "lucide-react";
+import { ArrowLeft, Shield, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -65,13 +65,22 @@ export default function AdminUsers() {
   const handleDeactivate = async (userId: string) => {
     try {
       await adminService.deactivateUser(userId);
-      setUsers(
-        users.map((u) => (u.id === userId ? { ...u, status: "blocked" } : u))
-      );
+      setUsers(users.map((u) => (u.id === userId ? { ...u, status: "blocked" } : u)));
       toast.success("User deactivated");
     } catch (error) {
       console.error("Error deactivating user:", error);
       toast.error("Failed to deactivate user");
+    }
+  };
+
+  const handleReactivate = async (userId: string) => {
+    try {
+      await adminService.reactivateUser(userId);
+      setUsers(users.map((u) => (u.id === userId ? { ...u, status: "active" } : u)));
+      toast.success("User reactivated");
+    } catch (error) {
+      console.error("Error reactivating user:", error);
+      toast.error("Failed to reactivate user");
     }
   };
 

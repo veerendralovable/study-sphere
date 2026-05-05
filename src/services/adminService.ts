@@ -193,10 +193,22 @@ export const adminService = {
         .from("profiles")
         .update({ status: "blocked" })
         .eq("id", userId);
-
       if (error) throw error;
     } catch (error) {
       console.error("Error deactivating user:", error);
+      throw error;
+    }
+  },
+
+  async reactivateUser(userId: string) {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error reactivating user:", error);
       throw error;
     }
   },
