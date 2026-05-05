@@ -91,6 +91,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
+    // Re-tick stats every 30s so today/total stays current while a session is active.
+    const id = setInterval(() => {
+      if (user) statsService.getForUser(user.id).then(setStats).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
