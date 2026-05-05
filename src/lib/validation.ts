@@ -1,13 +1,32 @@
 import { z } from "zod";
 
-export const ALLOWED_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.edu$/i;
+// Default allowed domain set; can be overridden at runtime by system_settings.
+const DEFAULT_DOMAINS = ["edu"];
+let runtimeDomains: string[] = DEFAULT_DOMAINS;
+
+export function setAllowedEmailDomains(list: string[]) {
+  runtimeDomains = list.length ? list : DEFAULT_DOMAINS;
+}
+
+export function getAllowedEmailDomains() {
+  return runtimeDomains;
+}
+
+function emailMatchesAllowedDomain(email: string): boolean {
+  const lower = email.toLowerCase().trim();
+  return runtimeDomains.some((d) => lower.endsWith("." + d.toLowerCase().replace(/^\./, "")));
+}
+
+export const ALLOWED_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
 
 export const emailSchema = z
   .string()
   .trim()
   .email("Invalid email address")
   .max(255)
-  .regex(ALLOWED_EMAIL_REGEX, "Only .edu email addresses are allowed");
+  .refine((v) => emailMatchesAllowedDomain(v), {
+    message: "Email domain is not allowed",
+  });
 
 export const passwordSchema = z
   .string()
