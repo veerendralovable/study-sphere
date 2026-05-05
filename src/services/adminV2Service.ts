@@ -307,15 +307,8 @@ export const advancedAnalyticsService = {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select(
-        `
-        id,
-        name,
-        email,
-        updated_at
-      `
-      )
-      .lt("updated_at", targetDate.toISOString())
+      .select("id, name, email, last_active_at")
+      .lt("last_active_at", targetDate.toISOString())
       .eq("status", "active");
 
     if (error) throw error;
