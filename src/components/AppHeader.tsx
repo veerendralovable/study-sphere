@@ -32,7 +32,7 @@ export function AppHeader({ onProfile }: { onProfile?: () => void }) {
     try {
       await authService.signOut();
       toast.success("Signed out");
-      navigate("/auth");
+      navigate("/login");
     } catch (e: any) {
       toast.error(e.message);
     }
