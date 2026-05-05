@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          audience?: string
+          body: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -44,25 +74,100 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_goals: {
+        Row: {
+          goal_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          goal_seconds?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          goal_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      presence_pings: {
+        Row: {
+          last_seen_at: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           id: string
+          last_active_at: string
           name: string | null
           status: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id: string
+          last_active_at?: string
           name?: string | null
           status?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          last_active_at?: string
           name?: string | null
           status?: string
         }
@@ -162,33 +267,69 @@ export type Database = {
           },
         ]
       }
+      room_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          room_id: string
+          user_id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           exam_mode: boolean
           id: string
           is_private: boolean
+          locked: boolean
           name: string
           room_code: string | null
+          subject: string | null
+          tags: string[]
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           exam_mode?: boolean
           id?: string
           is_private?: boolean
+          locked?: boolean
           name: string
           room_code?: string | null
+          subject?: string | null
+          tags?: string[]
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           exam_mode?: boolean
           id?: string
           is_private?: boolean
+          locked?: boolean
           name?: string
           room_code?: string | null
+          subject?: string | null
+          tags?: string[]
         }
         Relationships: [
           {
@@ -207,6 +348,7 @@ export type Database = {
           end_time: string | null
           id: string
           room_id: string | null
+          room_name_snapshot: string | null
           start_time: string
           user_id: string
         }
@@ -216,6 +358,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           room_id?: string | null
+          room_name_snapshot?: string | null
           start_time?: string
           user_id: string
         }
@@ -225,6 +368,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           room_id?: string | null
+          room_name_snapshot?: string | null
           start_time?: string
           user_id?: string
         }
@@ -378,6 +522,7 @@ export type Database = {
       }
     }
     Functions: {
+      auto_close_stale_sessions: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -431,6 +576,7 @@ export type Database = {
         Args: { _target: string; _viewer: string }
         Returns: boolean
       }
+      user_streak: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
