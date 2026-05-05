@@ -115,7 +115,7 @@ export default function AdminAnalytics() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Session Duration</p>
-                  <p className="text-3xl font-bold mt-2">{analytics.avg_session_duration}m</p>
+                  <p className="text-3xl font-bold mt-2">{analytics.avg_session_duration} min</p>
                 </div>
                 <Clock className="h-5 w-5 text-primary" />
               </div>

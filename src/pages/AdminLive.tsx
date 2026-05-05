@@ -24,7 +24,14 @@ export default function AdminLive() {
     try {
       setRefreshing(true);
       const data = await adminService.getLiveData();
-      setLiveData(data);
+      // Dedupe active rooms by room_id
+      const seen = new Set<string>();
+      const uniqueRooms = (data.active_rooms as any[]).filter((r: any) => {
+        if (seen.has(r.room_id)) return false;
+        seen.add(r.room_id);
+        return true;
+      });
+      setLiveData({ active_rooms: uniqueRooms as any, active_sessions: data.active_sessions });
     } catch (error) {
       console.error("Error loading live data:", error);
       if (loading) toast.error("Failed to load live data");
@@ -114,9 +121,7 @@ export default function AdminLive() {
                   >
                     <div>
                       <p className="font-medium text-sm">{room.rooms?.name || "Unknown Room"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {room.room_id === "all" ? "Multiple rooms" : "Active timer"}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Active timer</p>
                     </div>
                     <div className="h-2 w-2 bg-success rounded-full animate-pulse" />
                   </div>

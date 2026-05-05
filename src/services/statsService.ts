@@ -16,23 +16,33 @@ function dateKey(d: Date) {
 export const statsService = {
   async getForUser(userId: string): Promise<UserStats> {
     const sessions = await studySessionService.listByUser(userId);
-    const completed = sessions.filter((s) => s.duration && s.duration > 0);
-
-    const totalSeconds = completed.reduce((sum, s) => sum + (s.duration ?? 0), 0);
-    const sessionCount = completed.length;
-
+    const now = Date.now();
     const today = dateKey(new Date());
+
+    // Include in-progress session as a partial duration up to "now".
+    const enriched = sessions.map((s: any) => {
+      const dur =
+        s.duration && s.duration > 0
+          ? s.duration
+          : !s.end_time
+            ? Math.max(0, Math.floor((now - new Date(s.start_time).getTime()) / 1000))
+            : 0;
+      return { ...s, _dur: dur };
+    });
+
+    const completed = enriched.filter((s) => s._dur > 0);
+    const totalSeconds = completed.reduce((sum, s) => sum + s._dur, 0);
+    const sessionCount = sessions.filter((s: any) => s.duration && s.duration > 0).length;
+
     const todaySeconds = completed
       .filter((s) => dateKey(new Date(s.start_time)) === today)
-      .reduce((sum, s) => sum + (s.duration ?? 0), 0);
+      .reduce((sum, s) => sum + s._dur, 0);
 
-    // Streak calculation: consecutive days (UTC) ending today/yesterday with at least one session
     const days = new Set(completed.map((s) => dateKey(new Date(s.start_time))));
     const sortedDays = Array.from(days).sort();
 
     let currentStreak = 0;
     const cursor = new Date();
-    // Allow streak to be valid if user studied today OR yesterday (so they don't lose streak mid-day)
     if (!days.has(dateKey(cursor))) cursor.setUTCDate(cursor.getUTCDate() - 1);
     while (days.has(dateKey(cursor))) {
       currentStreak += 1;
@@ -55,8 +65,9 @@ export const statsService = {
     }
 
     const badges: string[] = [];
-    if (currentStreak > 3) badges.push("🔥 On Fire");
+    if (currentStreak >= 3) badges.push("🔥 On Fire");
     if (sessionCount >= 5) badges.push("💪 Consistent");
+    if (totalSeconds >= 36_000) badges.push("🏆 10h Club");
 
     return { totalSeconds, sessionCount, todaySeconds, currentStreak, longestStreak, badges };
   },

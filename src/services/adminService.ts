@@ -193,10 +193,22 @@ export const adminService = {
         .from("profiles")
         .update({ status: "blocked" })
         .eq("id", userId);
-
       if (error) throw error;
     } catch (error) {
       console.error("Error deactivating user:", error);
+      throw error;
+    }
+  },
+
+  async reactivateUser(userId: string) {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error reactivating user:", error);
       throw error;
     }
   },
@@ -340,33 +352,46 @@ export const adminService = {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Daily active users
       const { count: dau } = await supabase
         .from("study_sessions")
-        .select("user_id", { count: "exact" })
+        .select("user_id", { count: "exact", head: true })
         .gte("start_time", today.toISOString());
 
-      // Total sessions
       const { count: totalSessions } = await supabase
         .from("study_sessions")
         .select("*", { count: "exact", head: true });
 
-      // Average session duration
       const { data: sessions } = await supabase
         .from("study_sessions")
-        .select("duration")
+        .select("duration, start_time")
         .not("duration", "is", null);
 
+      const completed = sessions ?? [];
       const avgDuration =
-        sessions && sessions.length > 0
-          ? sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / sessions.length
+        completed.length > 0
+          ? completed.reduce((sum, s: any) => sum + (s.duration || 0), 0) / completed.length
           : 0;
+
+      // Real peak hour computation
+      const hours: Record<number, number> = {};
+      for (const s of completed as any[]) {
+        const h = new Date(s.start_time).getHours();
+        hours[h] = (hours[h] || 0) + 1;
+      }
+      let peakHour = -1;
+      let peakCount = 0;
+      Object.entries(hours).forEach(([h, c]) => {
+        if (c > peakCount) {
+          peakCount = c;
+          peakHour = parseInt(h, 10);
+        }
+      });
 
       return {
         daily_active_users: dau || 0,
         total_sessions: totalSessions || 0,
-        avg_session_duration: Math.round(avgDuration),
-        peak_usage_time: "N/A",
+        avg_session_duration: Math.round(avgDuration / 60), // minutes
+        peak_usage_time: peakHour >= 0 ? `${peakHour}:00` : "—",
       };
     } catch (error) {
       console.error("Error fetching analytics:", error);

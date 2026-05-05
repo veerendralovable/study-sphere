@@ -127,8 +127,9 @@ export default function AdminRooms() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => navigate(`/admin/rooms/${room.id}`)}
+                            onClick={() => navigate(`/room/${room.id}`)}
                             className="h-8"
+                            title="Open room"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -137,6 +138,7 @@ export default function AdminRooms() {
                             variant="ghost"
                             onClick={() => handleDelete(room.id)}
                             className="h-8 text-destructive hover:text-destructive"
+                            title="Delete room"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

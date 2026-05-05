@@ -12,6 +12,12 @@ export const timerService = {
   },
 
   async start(roomId: string, durationSeconds: number) {
+    if (!Number.isFinite(durationSeconds) || durationSeconds < 60) {
+      throw new Error("Timer must be at least 1 minute");
+    }
+    if (durationSeconds > 14400) {
+      throw new Error("Timer cannot exceed 4 hours");
+    }
     const existing = await this.getByRoom(roomId);
     const payload = {
       room_id: roomId,

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppHeader } from "@/components/AppHeader";
-import { ArrowLeft, Shield, UserX } from "lucide-react";
+import { ArrowLeft, Shield, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -65,13 +65,22 @@ export default function AdminUsers() {
   const handleDeactivate = async (userId: string) => {
     try {
       await adminService.deactivateUser(userId);
-      setUsers(
-        users.map((u) => (u.id === userId ? { ...u, status: "blocked" } : u))
-      );
+      setUsers(users.map((u) => (u.id === userId ? { ...u, status: "blocked" } : u)));
       toast.success("User deactivated");
     } catch (error) {
       console.error("Error deactivating user:", error);
       toast.error("Failed to deactivate user");
+    }
+  };
+
+  const handleReactivate = async (userId: string) => {
+    try {
+      await adminService.reactivateUser(userId);
+      setUsers(users.map((u) => (u.id === userId ? { ...u, status: "active" } : u)));
+      toast.success("User reactivated");
+    } catch (error) {
+      console.error("Error reactivating user:", error);
+      toast.error("Failed to reactivate user");
     }
   };
 
@@ -111,7 +120,8 @@ export default function AdminUsers() {
               className="rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">All roles</option>
-              <option value="student">Student</option>
+              <option value="user">User</option>
+              <option value="moderator">Moderator</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -156,7 +166,8 @@ export default function AdminUsers() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className="rounded-md border border-input bg-background px-2 py-1 text-sm"
                         >
-                          <option value="student">Student</option>
+                          <option value="user">User</option>
+                          <option value="moderator">Moderator</option>
                           <option value="admin">Admin</option>
                         </select>
                       </TableCell>
@@ -176,15 +187,27 @@ export default function AdminUsers() {
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeactivate(user.id)}
-                          disabled={user.status === "blocked"}
-                          className="h-8"
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
+                        {user.status === "blocked" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleReactivate(user.id)}
+                            className="h-8"
+                            title="Reactivate user"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeactivate(user.id)}
+                            className="h-8"
+                            title="Deactivate user"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
