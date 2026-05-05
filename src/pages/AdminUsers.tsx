@@ -111,7 +111,8 @@ export default function AdminUsers() {
               className="rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">All roles</option>
-              <option value="student">Student</option>
+              <option value="user">User</option>
+              <option value="moderator">Moderator</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -156,7 +157,8 @@ export default function AdminUsers() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className="rounded-md border border-input bg-background px-2 py-1 text-sm"
                         >
-                          <option value="student">Student</option>
+                          <option value="user">User</option>
+                          <option value="moderator">Moderator</option>
                           <option value="admin">Admin</option>
                         </select>
                       </TableCell>
