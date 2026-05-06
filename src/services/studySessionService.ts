@@ -2,6 +2,17 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const studySessionService = {
   async start(userId: string, roomId: string) {
+    // Idempotent: reuse any existing open session for this user+room.
+    const { data: existing } = await supabase
+      .from("study_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("room_id", roomId)
+      .is("end_time", null)
+      .order("start_time", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing) return existing;
     const { data, error } = await supabase
       .from("study_sessions")
       .insert({ user_id: userId, room_id: roomId, start_time: new Date().toISOString() })

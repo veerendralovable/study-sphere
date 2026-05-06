@@ -4,7 +4,7 @@ import { adminService, UserStats } from "@/services/adminService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
-import { Users, Zap, BookOpen, BarChart3, AlertCircle, FileText, Settings } from "lucide-react";
+import { Users, Zap, BookOpen, BarChart3, AlertCircle, FileText, Settings, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Admin() {
@@ -109,6 +109,13 @@ export default function Admin() {
             description="Configure system-wide parameters"
             href="/admin/settings"
             icon={<Settings className="h-6 w-6" />}
+            badge="V2"
+          />
+          <AdminCard
+            title="Announcements"
+            description="Broadcast messages to all users"
+            href="/admin/announcements"
+            icon={<Megaphone className="h-6 w-6" />}
             badge="V2"
           />
         </div>

@@ -11,6 +11,8 @@ import { useRoomTimer } from "@/hooks/useRoomTimer";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { SessionCompletion } from "@/components/SessionCompletion";
+import { RoomChat } from "@/components/RoomChat";
+import { ReportDialog } from "@/components/ReportDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,7 @@ import {
   Copy,
   ShieldAlert,
   Crown,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +65,7 @@ export default function Room() {
   const [sessionCompleteOpen, setSessionCompleteOpen] = useState(false);
   const [completedSessionSeconds, setCompletedSessionSeconds] = useState(0);
   const [completionStats, setCompletionStats] = useState<UserStats | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const sessionRef = useRef<{ id: string; start_time: string } | null>(null);
 
@@ -385,6 +389,9 @@ export default function Room() {
                   {leaving ? "Leaving..." : "Leave room"}
                 </Button>
               )}
+              <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)} title="Report room">
+                <Flag className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -529,7 +536,22 @@ export default function Room() {
               )}
             </Card>
           </div>
+          {accessGranted && id && (
+            <div className="mt-6">
+              <RoomChat roomId={id} isCreator={isCreator} />
+            </div>
+          )}
         </main>
+
+        {id && (
+          <ReportDialog
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            targetType="room"
+            targetId={id}
+            targetLabel={room?.name}
+          />
+        )}
 
         <SessionCompletion
           open={sessionCompleteOpen}

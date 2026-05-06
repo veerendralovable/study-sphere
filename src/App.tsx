@@ -23,6 +23,7 @@ import AdminAnalytics from "./pages/AdminAnalytics.tsx";
 import AdminReports from "./pages/AdminReports.tsx";
 import AdminLogs from "./pages/AdminLogs.tsx";
 import AdminSettings from "./pages/AdminSettings.tsx";
+import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -37,11 +38,6 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/dashboard"
                 element={
@@ -50,6 +46,11 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/room/:id"
                 element={
@@ -119,6 +120,14 @@ const App = () => (
                 element={
                   <AdminRoute>
                     <AdminSettings />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/announcements"
+                element={
+                  <AdminRoute>
+                    <AdminAnnouncements />
                   </AdminRoute>
                 }
               />
