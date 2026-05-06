@@ -23,6 +23,7 @@ import AdminAnalytics from "./pages/AdminAnalytics.tsx";
 import AdminReports from "./pages/AdminReports.tsx";
 import AdminLogs from "./pages/AdminLogs.tsx";
 import AdminSettings from "./pages/AdminSettings.tsx";
+import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
