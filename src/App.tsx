@@ -123,6 +123,14 @@ const App = () => (
                   </AdminRoute>
                 }
               />
+              <Route
+                path="/admin/announcements"
+                element={
+                  <AdminRoute>
+                    <AdminAnnouncements />
+                  </AdminRoute>
+                }
+              />
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
