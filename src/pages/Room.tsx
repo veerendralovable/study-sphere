@@ -65,6 +65,7 @@ export default function Room() {
   const [sessionCompleteOpen, setSessionCompleteOpen] = useState(false);
   const [completedSessionSeconds, setCompletedSessionSeconds] = useState(0);
   const [completionStats, setCompletionStats] = useState<UserStats | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const sessionRef = useRef<{ id: string; start_time: string } | null>(null);
 
