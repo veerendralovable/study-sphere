@@ -389,6 +389,9 @@ export default function Room() {
                   {leaving ? "Leaving..." : "Leave room"}
                 </Button>
               )}
+              <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)} title="Report room">
+                <Flag className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
