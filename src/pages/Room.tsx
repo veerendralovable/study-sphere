@@ -36,6 +36,7 @@ import {
   Copy,
   ShieldAlert,
   Crown,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 
