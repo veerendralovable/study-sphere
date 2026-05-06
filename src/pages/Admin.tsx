@@ -4,7 +4,7 @@ import { adminService, UserStats } from "@/services/adminService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
-import { Users, Zap, BookOpen, BarChart3, AlertCircle, FileText, Settings } from "lucide-react";
+import { Users, Zap, BookOpen, BarChart3, AlertCircle, FileText, Settings, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Admin() {
