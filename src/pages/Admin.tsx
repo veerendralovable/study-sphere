@@ -111,6 +111,13 @@ export default function Admin() {
             icon={<Settings className="h-6 w-6" />}
             badge="V2"
           />
+          <AdminCard
+            title="Announcements"
+            description="Broadcast messages to all users"
+            href="/admin/announcements"
+            icon={<Megaphone className="h-6 w-6" />}
+            badge="V2"
+          />
         </div>
       </main>
     </div>
