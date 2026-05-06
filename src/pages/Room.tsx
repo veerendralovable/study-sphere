@@ -536,7 +536,22 @@ export default function Room() {
               )}
             </Card>
           </div>
+          {accessGranted && id && (
+            <div className="mt-6">
+              <RoomChat roomId={id} isCreator={isCreator} />
+            </div>
+          )}
         </main>
+
+        {id && (
+          <ReportDialog
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            targetType="room"
+            targetId={id}
+            targetLabel={room?.name}
+          />
+        )}
 
         <SessionCompletion
           open={sessionCompleteOpen}
