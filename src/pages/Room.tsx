@@ -11,6 +11,8 @@ import { useRoomTimer } from "@/hooks/useRoomTimer";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { SessionCompletion } from "@/components/SessionCompletion";
+import { RoomChat } from "@/components/RoomChat";
+import { ReportDialog } from "@/components/ReportDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
