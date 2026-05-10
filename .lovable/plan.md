@@ -1,250 +1,223 @@
 
-# StudySphere — Full Gap Remediation Plan
+# StudySphere → StudyStream Feature Expansion Plan
 
-This plan removes every mock/placeholder, fixes every broken or fake-functional UI element, fills DB gaps, and makes the right screens real-time. Grouped into clusters so each phase ships standalone without breaking the others.
-
----
-
-## Cluster 0 — Audit findings (the "what is broken")
-
-Concrete defects found in code right now:
-
-**A. Admin panel — fake/broken bits**
-1. `AdminUsers` role dropdown shows `Student/Admin` but DB enum is `admin/moderator/user` — every save throws under the hood (filter mismatch hides it).
-2. `AdminUsers` deactivate hits `profiles.status='blocked'`, but no RLS allows non-admin self-block, no UI to reactivate, no audit log written.
-3. `AdminUsers` row actions: only deactivate. Missing: reactivate, force sign-out, view sessions, ban with reason, edit name/email.
-4. `AdminRooms` "Eye" button navigates to `/admin/rooms/:id` — that route does not exist (NotFound). Broken button.
-5. `AdminRooms` missing: force-end timer, kick all members, lock/unlock, transfer creator, view members, exam-mode override.
-6. `AdminLive` `active_rooms` mapping uses `room.room_id === "all"` placeholder string ("Multiple rooms") — dead branch. Polls every 5s instead of using realtime; duplicates rooms when multiple users have timers (no dedupe).
-7. `AdminAnalytics` `peak_usage_time` is the literal string `"N/A"` from V1 service. Retention metric is "users with sessions in last 7 days", not real cohort retention. Inactive users uses `profiles.updated_at` which is not in the schema → query silently returns wrong data.
-8. `advancedAnalyticsService.getMostActiveRooms` returns rooms ordered by `created_at`, not member count — misleading title.
-9. `AdminReports` shows reporter/target as 8-char UUID stub; no resolve link to the actual user/room; no name resolution.
-10. `AdminLogs` table renders only known action colors; many real actions (room_deleted, exam_mode_toggle, user_deactivated, member_removed) are never written to `audit_logs` at all → log page is permanently empty in practice.
-11. `AdminSettings` reads/writes `system_settings`, but **the table is never seeded** — page loads empty, save does nothing. `getMaxRoomSize`, `isMaintenanceMode`, etc. are never enforced anywhere in the app.
-12. No admin Room-Detail page (V2 promised), no impersonation, no announcements.
-
-**B. End-user app — broken bits**
-13. `AppHeader.logout()` navigates to `/auth` (legacy). Should be `/login`.
-14. `Dashboard.statsService.getForUser` includes only sessions with `duration > 0`; the **current in-progress session** (no end_time) never counts toward "Today" — counter only updates after the user leaves the room. Should include live partial duration.
-15. `Dashboard` "—" placeholder remains because `stats` is null on first paint; once loaded, zero values show as `0`. Inconsistent.
-16. `DailyGoal` goal is hardcoded to 2 hours — no UI to change it, no per-user persistence. Promised feature.
-17. `Room.tsx` Removed-from-room toast then `navigate("/")` works, but `roomMemberService.myMembership` is called even for non-members of private rooms, which then auto-joins public rooms silently — no consent UX.
-18. `Room.tsx` study-session `start` runs on every mount; if the user reloads while timer is active, **a new session row is created and the previous one is left dangling** (no end_time forever). Stats become wrong.
-19. `Room.tsx` session end on unmount uses `sessionRef` cleanup that fires before `await` resolves on fast navigate → orphan rows.
-20. `Room.tsx` no "Report user/room" button despite Reports table existing.
-21. `Room.tsx` no in-room chat/notes/whiteboard — common feature in study rooms; if not in scope mark explicitly out-of-scope (we will).
-22. Members list never updates timer/online presence; "Active members" is just `status='active'` in DB, not actual online presence (a user who closed the tab still shows as active).
-23. `RoomCard` `timerActive` only reflects timer row, not whether anyone is actually present.
-24. Forgot/Reset password pages exist but `/reset-password` has no token check on mount → if user lands there directly they can blank-submit.
-25. `Signup` does not block on email verification flow — user is told "check email" then app shows logged-out state, but `redirectTo` is `/`, which redirects to `/login`, losing context. (Need explicit "verification sent" page.)
-26. `Index.tsx` redirects `/` → `/login` for logged-out, which is correct, but the public landing page (marketing) is gone — there is no real `/` for visitors.
-27. `ProfileDialog` only edits `name`; cannot upload avatar, change password, delete account.
-28. No `study_session_goals` per-user table; daily goal lives only as a constant.
-29. No notifications system (toasts only). E.g. when a creator starts a timer, joiners get nothing visual besides the synced clock.
-30. No room search by tag/subject/category — schema lacks these columns.
-31. `roomMemberService.join` upserts even for `removed` rows — RLS blocks correctly, but UX swallows error. Should detect and route to "you were removed".
-32. No way to leave a private room cleanly while exam-mode is on (intended); but no way for creator to disable exam mode if they themselves disconnect — orphan locked room.
-33. `study_sessions` keeps `room_id` even after the room is deleted → "Most active rooms" stat is broken; need ON DELETE behavior.
-34. `audit_logs.target_id` not FK; admin pages can't dereference it because there's no service to resolve names.
-35. Multiple legacy `*.md` / `*.txt` status files at repo root mixing truth — risk: AI agents confuse old plans for current state. (Not user-visible but causes regressions.)
-
-**C. Database gaps**
-36. No `daily_goals` (per-user goal seconds) table.
-37. No `tags`/`subjects`/`categories` columns on `rooms`.
-38. No `presence` mechanism (Realtime presence, not row state).
-39. `study_sessions.end_time` not auto-closed when row stale → need cron or trigger.
-40. `system_settings` rows never seeded.
-41. No trigger to insert `audit_logs` rows for: `room_deleted`, `member_removed`, `user_deactivated`, `role_changed`, `exam_mode_toggled`.
-42. No `notifications` table for in-app announcements/admin pushes.
-43. No `room_messages` or `room_notes` table (chat is missing — see decision in Cluster 6).
-44. `profiles.email` is mutable on insert path; no NOT NULL; profile email can drift from auth email.
-45. No `last_active_at` column on `profiles` → analytics for "inactive users" relies on a non-existent `updated_at`.
-
-**D. Security findings still open** (from current scanner)
-46. Realtime topic policy missing.
-47. `profiles.email` writable column-level (need column trigger/constraint).
-48. `room_members` removed-member reinstate: tighten with explicit policies.
+This plan layers Study Stream–style co-working features on top of the current StudySphere foundation. It is grouped into 8 sequential clusters. Each cluster ships independently and does not break the previous one. Free-tier services only.
 
 ---
 
-## Cluster 1 — Database migration: missing tables, columns, triggers, seeds
+## Cluster 8 — Live Audio & Video (study-with-me cams), free-tier
 
-One migration `xxxx_full_remediation.sql` containing:
+Goal: every room can be a "study-with-me" room with optional camera and mic tiles, controlled per user.
 
-**1.1 Schema additions**
-- `profiles.last_active_at timestamptz` (default `now()`); update via trigger on `study_sessions` insert + `auth.users` sign-in (function called from edge).
-- `rooms.subject text`, `rooms.tags text[] default '{}'`, `rooms.locked boolean default false` (admin lock).
-- `rooms.deleted_at timestamptz` (soft delete) so analytics survive.
-- `study_sessions.room_id` change `ON DELETE` → keep but add denormalized `room_name_snapshot text`.
-- New table `daily_goals (user_id uuid pk, goal_seconds int not null default 7200, updated_at timestamptz)`.
-- New table `notifications (id uuid pk, user_id uuid not null, kind text, title text, body text, read boolean default false, created_at timestamptz default now())`.
-- New table `announcements (id, title, body, created_by, audience text check in ('all','admins'), created_at, expires_at)`.
-- New table `room_messages (id, room_id, user_id, body text, created_at)` for in-room chat (Cluster 6 enables UI).
-- New table `presence_pings (room_id, user_id, last_seen_at)` — minimal heartbeat fallback (we will primarily use Realtime presence channel, but DB row helps reconciliation).
+### 8.1 Transport choice (free tier)
+- Primary: **LiveKit Cloud free tier** (50 GB egress / mo, 100 concurrent participants) via official Deno-friendly token-issuing edge function. Falls within budget for early users.
+- Fallback for rooms ≤ 4 users when LiveKit quota is exhausted: **Supabase Realtime as a WebRTC mesh signaling channel** (no media server cost; clients connect peer-to-peer). Auto-switch decided server-side.
+- Audio-only mode is the default to save egress; users opt-in to video per session.
 
-**1.2 Triggers**
-- `prevent_profile_email_change` already exists — keep, but also add `NOT NULL` + add column-level CHECK on insert to enforce `.edu`.
-- New `audit_log_room_delete` AFTER DELETE on `rooms` → insert into `audit_logs`.
-- New `audit_log_member_status_change` AFTER UPDATE on `room_members` when status moves to `removed` or `active` post-removal.
-- New `audit_log_role_change` AFTER INSERT/DELETE on `user_roles`.
-- New `audit_log_exam_mode` AFTER UPDATE on `rooms` when `exam_mode` changes.
-- `auto_close_stale_sessions()` SQL function; called from a `pg_cron` job (or manually via edge fn `cron-housekeeping`) every 5 min: any `study_sessions` with no end_time and `start_time < now() - interval '6 hours'` gets auto-closed.
+### 8.2 Database
+- `room_media_sessions(id, room_id, user_id, kind ['cam'|'mic'|'screen'], started_at, ended_at)` — analytics + abuse trail, not signaling.
+- `rooms.media_mode text default 'audio'` — `'off' | 'audio' | 'video' | 'mesh'`.
+- `rooms.max_video_tiles int default 12`.
+- `room_media_bans(room_id, user_id, until)` — creator/admin can temp-mute or ban camera per user.
 
-**1.3 RLS additions / fixes**
-- `daily_goals`: user can read/write own; admins read all.
-- `notifications`: user reads/updates own; admins insert.
-- `announcements`: all authenticated read where `now() < expires_at OR expires_at is null`; admins write.
-- `room_messages`: room members select/insert; creators+admins delete.
-- Tighten `profiles` UPDATE policy: replace single policy with two — `name only` for self, `status/role` for admins. Use a trigger guard to revert disallowed column writes.
-- `room_members` UPDATE: split into two explicit policies — "self leave" `WITH CHECK (status='left' AND auth.uid()=user_id)` and "creator moderate" `WITH CHECK (is_room_creator(...))`. Removes the OR-OR ambiguity flagged by scanner.
+### 8.3 Edge functions
+- `livekit-token` — verifies caller is `is_room_member`, room not `locked`, not banned; mints LK access token with room name = `room:<uuid>` and identity = `user:<uuid>`. Reads `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` secrets.
+- `livekit-egress-quota` — daily cron sums monthly minutes via LK REST; flips `media_mode` to `'mesh'` when 90% of budget hit; writes `system_settings.media_quota_state`.
 
-**1.4 Seeds**
-Insert `system_settings` rows: `max_room_size=50`, `max_rooms_per_user=10`, `allowed_domains=["edu"]`, `maintenance_mode=false`, `timer_min_duration=60`, `timer_max_duration=14400`, `default_daily_goal_seconds=7200`, `feature_chat=true`, `feature_announcements=true`.
+### 8.4 UI (Room page)
+- New `MediaTiles` panel: grid of camera tiles, mic-only avatar tiles, raise-hand row. Tile shows: avatar, name, mic level (Web Audio analyser), timer remaining, focus state badge.
+- Self-controls strip: mic toggle, cam toggle, screen-share, blur-background (uses `@mediapipe/selfie_segmentation` client-side — free), virtual background presets, "go AFK", "leave call".
+- Settings sheet: input/output device picker, noise suppression (LK default), auto-mute on focus block, "low-bandwidth mode" (drop to audio).
+- Creator-only moderation menu per tile: mute, disable cam, kick from call (does not remove from room), ban media for room.
 
-**1.5 Realtime authorization (manual + SQL where allowed)**
-- Enable publication on `room_messages`, `notifications`, `announcements`, `daily_goals`.
-- Add `realtime.messages` policy gated on `is_room_member(auth.uid(), <topic_room_id>)`. (User must toggle "Realtime Authorization" in dashboard once.)
+### 8.5 Permissions / RLS
+- `room_media_bans`: insert/delete by creator or admin; read by everyone (clients check before publishing).
+- Media-publish authority is enforced by the LK token, not by RLS.
 
 ---
 
-## Cluster 2 — Core services: remove mocks, add what's missing
+## Cluster 9 — Focus Suite inside a room
 
-**2.1 `adminService` rewrite**
-- `getAnalytics`: replace `peak_usage_time:"N/A"` with computed peak hour from `study_sessions`.
-- `getLiveData`: dedupe by room_id, hydrate creator names, include member count, derive truly-active sessions (within last 60s by `presence_pings`).
-- `getUserDetails.current_streak`: actually compute from sessions (reuse `statsService` logic server-side via SQL function `user_streak(uid)`).
-- Add `reactivateUser`, `forceSignOut(userId)` (calls edge fn that uses service role to sign out), `getUserSessions(userId)`.
-- All mutating methods write `audit_logs` via the new triggers (no client-side log writes).
+Goal: full study-session productivity loop. All data persists per session.
 
-**2.2 `adminV2Service` fixes**
-- `getMostActiveRooms` → SQL view ordering by `count(distinct member)` over last 7 days.
-- `getInactiveUsers` → use new `last_active_at`.
-- Add `getRoomDetailsForAdmin(roomId)`: room + members + active timer + recent reports + audit trail.
-- Add `announcementsService` (CRUD).
-- Add `notificationsService` (list/markRead/markAllRead).
+### 9.1 Pomodoro Presets
+- New table `pomodoro_presets(id, user_id, name, focus_min, short_break_min, long_break_min, cycles_until_long, auto_start)`.
+- Seed defaults (Classic 25/5/15×4, 50/10, 90/20 ultradian, Deep 120/30, Custom).
+- `room_timer_program(room_id, preset_id, current_phase, cycle_index, phase_started_at, paused_at)` — drives the shared timer across phases instead of one duration.
+- Realtime broadcast: phase transitions auto-advance for everyone in room; creator can skip/reset.
 
-**2.3 New `roomChatService`** + `presenceService` (heartbeat every 20s; subscribes to a Supabase Realtime presence channel keyed `room:<id>`).
+### 9.2 Tasks per session
+- `session_tasks(id, user_id, session_id, room_id, title, done, est_pomodoros, actual_pomodoros, created_at, completed_at, position)`.
+- Side panel "My tasks" in room: add, reorder (drag), check, edit, delete; tag a task as the "current focus" — shown on the user's tile and in chat presence.
+- Pomodoro completion auto-increments `actual_pomodoros` of the current focus task.
 
-**2.4 `dailyGoalService`** — get/update per user with optimistic UI.
+### 9.3 Distraction Blocker (client-side checklist + lock)
+- New table `focus_blocklists(user_id, items text[])` — list of sites the user wants to remember to avoid.
+- "Lock-in mode": when on, the room UI hides chat, leaderboard, notifications bell, achievements popovers; only timer + tasks + media tiles render. Disables tab navigation away (best-effort: `beforeunload`, `visibilitychange` warning). No real blocking (browser sandbox), purely accountability + visible "left the room" alert to peers.
 
-**2.5 `reportService`** for users (Room.tsx will expose a Report button).
+### 9.4 Session Notes & Reflection
+- `session_notes(session_id, user_id, body markdown, created_at, updated_at)` — autosaves every 5 s. Markdown editor in side panel.
+- On `study_sessions.end`, a Reflection dialog asks: mood (1-5), productivity (1-5), what was accomplished, what's next, friction notes. Stored as `session_reflections`.
+- Dashboard surfaces last 7 reflections, average mood/productivity trends.
 
-**2.6 `statsService` fix** — include in-progress session partial duration (now − start_time) into `todaySeconds` and `totalSeconds`. Re-tick every 30s.
-
----
-
-## Cluster 3 — Admin panel completion (every promised page real)
-
-- `/admin/users`: fix role enum (`admin/moderator/user`), add Reactivate/Force-Sign-Out/View Sessions, and a side-drawer with full user details using `getUserDetails`. Add server-side search via `ilike` on name/email + role filter.
-- `/admin/rooms`: add `/admin/rooms/:id` detail page (members, timers, reports, audit). Add Force-end timer, Lock room (`rooms.locked`), Unlock, Soft-delete, Toggle exam mode, Kick all.
-- `/admin/live`: replace 5s poll with Realtime subscription to `timers` and `presence_pings`. Show per-room concurrency chart.
-- `/admin/analytics`: real retention (cohort: users active in week N who returned in week N+1), real peak hour, real most-active rooms, top users leaderboard (opt-in flag).
-- `/admin/reports`: resolve reporter_id → name, target_id → name/room. Add "Take action" menu (warn user, deactivate user, delete room).
-- `/admin/logs`: server-side filter by action/actor/date; show actor name; verify rows actually appear (after Cluster 1 triggers).
-- `/admin/settings`: working CRUD against seeded rows; enforce values app-wide:
-  - `maintenance_mode=true` ⇒ all non-admin routes show maintenance screen.
-  - `max_rooms_per_user` enforced in `roomService.create` via RPC count check.
-  - `timer_min/max_duration` enforced in `timerService.start`.
-  - `allowed_domains` replaces hardcoded `.edu` regex in `validation.ts`.
-- New `/admin/announcements`: create/edit/expire announcements; broadcast over Realtime; rendered as a top banner for users.
-- Add admin "Impersonate" via edge fn that issues a short-lived magic link (audit-logged).
+### 9.5 Ambient Sounds & Focus Music
+- Bundled royalty-free loops (lo-fi, rain, cafe, forest, white/brown/pink noise, fireplace) shipped as static `.opus` files in `public/sounds/` (size budget: total ≤ 6 MB after Opus encoding).
+- Per-user mix: independent volume sliders per layer (max 3 layers concurrent), saved to `user_sound_mixes(user_id, mix jsonb)`.
+- "Room ambience" toggle for creators: streams a shared ambience selection over Realtime so everyone hears the same.
+- Optional ElevenLabs **on-demand** music generation (gated behind admin flag `feature_ai_music`, off by default to protect AI balance). Edge function `gen-focus-track` proxies ElevenLabs Music API; cached results stored in `focus_tracks` table + Supabase Storage `focus-tracks` bucket (public read).
 
 ---
 
-## Cluster 4 — User app polish & real functionality
+## Cluster 10 — Gamification: XP, Levels, Badges, Streaks
 
-- `AppHeader.logout` → navigate `/login`.
-- Dashboard:
-  - Show `0` everywhere immediately if `stats` is loading (skeleton instead of "—").
-  - Editable Daily Goal (click → dialog → saves to `daily_goals`).
-  - Live "Today" counter ticks while a session is active.
-  - Add subject/tag filter chips; search by tag in `discover`.
-  - Announcements banner (from `announcements` table, dismissible per user via `notifications.read`).
-- Room page:
-  - Idempotent session start: if there is an open session for this user + room, reuse it instead of creating a new one (use `select … is null end_time`).
-  - Persistent `beforeunload` to close session.
-  - Presence channel: `members` list shows online dot if user is heartbeating.
-  - Report user/room button (creates `reports` row).
-  - Chat panel (collapsible) using `room_messages`.
-  - Exam-mode auto-disable safety: if creator is offline >10min during exam mode, an admin can override (button on `/admin/rooms/:id`).
-  - "Locked" rooms (`rooms.locked=true`) refuse new joins and surface a banner.
-- Profile dialog:
-  - Avatar upload (Supabase Storage bucket `avatars`, public read, owner write — new bucket created in migration).
-  - Change password (current+new).
-  - Delete account (edge fn calls `auth.admin.deleteUser` and cascades `profiles`).
-- Public landing page at `/` (marketing) for logged-out users (current `Index.tsx` only redirects). Logged-in users still go to dashboard.
-- `/reset-password` guards against missing recovery token.
-- `/signup` shows explicit "Check your email to verify" success state.
-- Notifications bell in `AppHeader` opens dropdown of `notifications` rows.
+### 10.1 Schema
+- `user_xp(user_id pk, xp bigint default 0, level int default 1, level_progress int default 0, updated_at)`.
+- `xp_events(id, user_id, source ['session'|'task'|'streak'|'social'|'badge'], amount, ref_id, created_at)` — append-only ledger; recomputable.
+- `badges(code pk, name, description, icon, criteria jsonb, tier)`.
+- `user_badges(user_id, badge_code, awarded_at)`.
+- `user_streaks(user_id pk, current int, longest int, last_active_date)` — replaces ad-hoc streak query for hot path; `user_streak()` SQL fn becomes write-through.
 
----
+### 10.2 Award rules (server-side, trigger-driven)
+- AFTER UPDATE on `study_sessions` when `duration` becomes non-null:
+  - +1 XP per minute, +10 bonus per full pomodoro phase logged.
+- AFTER UPDATE on `session_tasks` when `done=true`:
+  - +5 XP per task; +15 if estimated pomodoros met exactly.
+- AFTER UPDATE on `user_streaks`:
+  - Day-3 / 7 / 14 / 30 / 60 / 100 → badges + bonus XP.
+- Level curve: `xp_required(n) = 100 * n^1.5` (rounded). Recomputed in SQL function `recalc_level(uid)`.
 
-## Cluster 5 — Realtime everything
+### 10.3 Badge catalogue (seed)
+- First Session, Night Owl (00:00–04:00), Early Bird (05:00–08:00), Marathon (4 h single session), Centurion (100 sessions), Streak Starter / Keeper / Hero / Legend, Social Butterfly (5 friends), Tutor (helped 10 chat replies), Focus Master (50 completed pomodoros), Subject badges per `rooms.subject`.
 
-Subscribe via Supabase Realtime to:
-1. `room_members` (already done, keep).
-2. `timers` (already done, keep).
-3. `rooms` row (already done — exam_mode toggle).
-4. `room_messages` (new) — chat.
-5. `announcements` (new) — global banner.
-6. `notifications` (new) — bell.
-7. Presence channel per room — online users.
-8. Admin Live page subscribes to `timers` and `presence_pings` (replaces 5s poll).
-
-Add channel-topic RLS via `realtime.messages` policy keyed on `is_room_member`.
+### 10.4 Frontend
+- Profile page additions: level bar, badge grid (locked/unlocked), XP history chart.
+- Toasts on award (respect Lock-in mode — queue and show after).
+- Dashboard "Rank up in X XP" widget.
 
 ---
 
-## Cluster 6 — Decisions you need to make before we build
+## Cluster 11 — Leaderboards & Social Graph (friends)
 
-I'll ask one question after this plan is approved (so we don't add work the wrong way):
+### 11.1 Friends
+- `friend_requests(id, from_user, to_user, status ['pending'|'accepted'|'rejected'|'cancelled'], created_at, responded_at)`.
+- `friends(user_a, user_b)` materialised on accept (both directions inserted; PK `(user_a, user_b)` with `user_a < user_b`).
+- RLS: users see only rows they participate in.
+- Search users by name/email prefix via `search_users(q)` SECURITY DEFINER fn limited to 20 results.
 
-a) Include in-room **chat** (`room_messages`)? (Adds DB table, UI panel, moderation rules.)
-b) Include public **landing page** at `/` or keep redirecting to login?
-c) Include **avatar uploads** + Storage bucket?
-d) Include **announcements** system?
+### 11.2 Presence among friends
+- Friends list shows live status (online/in-room/focusing/break) via Realtime presence channel `friends:<uid>`.
+- "Join friend's room" button if room is public or shared code present.
 
-If you say "everything", I'll build all four.
+### 11.3 Leaderboards
+- Views:
+  - `leaderboard_weekly` — sum(duration) past 7 d per user.
+  - `leaderboard_alltime` — sum(duration) lifetime.
+  - `leaderboard_xp_weekly`, `leaderboard_xp_alltime`.
+  - `leaderboard_room_weekly(room_id)` — per-room.
+- Opt-in flag `profiles.leaderboard_opt_in boolean default true`. Opted-out users still see their own rank but are hidden from others.
+- Privacy: leaderboards show only display name + avatar + minutes/XP; never email. Anonymous mode shows a generated alias.
 
----
-
-## Cluster 7 — Cleanup
-
-- Delete the 25+ outdated `*.md` / `*.txt` status docs at repo root; replace with one `README.md` + `CHANGELOG.md`.
-- Remove `scripts/setup-db.js` (obsolete after migration).
-- Re-run security scan; mark fixed findings; update `mem://security/posture.md`.
-- Add `src/test/` coverage for: `statsService` partial-session math, `roomService.setExamMode`, `dailyGoalService`, role-change service.
-
----
-
-## Suggested execution order
-
-1. Cluster 1 (DB migration + seeds + triggers + RLS split). **Highest leverage.**
-2. Cluster 2 (services rewrite).
-3. Cluster 3 (admin panel — all pages real).
-4. Cluster 4 (user-facing polish + presence + chat).
-5. Cluster 5 (realtime wiring across all surfaces).
-6. Cluster 7 (cleanup + tests + security memory).
-
-Estimated size: ~1 large migration, ~9 service files touched/added, ~12 page files touched/added, ~4 new components, ~2 edge functions (`force-sign-out`, `delete-account`, `cron-housekeeping`).
+### 11.4 UI
+- `/leaderboard` page with tabs: Global · Weekly · Friends · Room. Filter by subject.
+- Room sidebar mini-leaderboard "This room, this week".
 
 ---
 
-## Out of scope (explicit)
+## Cluster 12 — Chat upgrade & community surfaces
 
-- Whiteboard / video / voice chat.
-- Mobile app.
-- Payments / subscriptions.
-- Calendar integration.
-- Email digests (would need separate cron + email provider; can be added later).
+### 12.1 Room chat improvements
+- Reactions (emoji), reply threads (1-level), mentions (`@name`) → creates `notifications` rows for mentioned users.
+- Pinned message per room (`rooms.pinned_message_id`).
+- Slash commands: `/break`, `/focus`, `/task add X`, `/timer 25` — parsed client-side, routed to existing services.
+- Slow-mode toggle (creator): N seconds between posts, enforced via DB function `post_room_message_throttled`.
+- Moderation: report message inline → existing `reports` flow; creator can soft-delete; admin can hard-delete (audit logged).
+
+### 12.2 Direct messages (1:1, friends only)
+- `dm_threads(id, user_a, user_b unique pair)`, `dm_messages(thread_id, user_id, body, created_at, read_at)`.
+- RLS: participants only. Realtime enabled. Notifications bell counts unread.
+
+### 12.3 Subject hubs (lightweight communities)
+- `subjects(slug pk, name, description, icon)` — seeded (Math, CS, Bio, Physics, History, Languages, MBA, MCAT, USMLE, LSAT, …).
+- `/subjects/:slug` page: featured rooms with that subject, top users this week, recent announcements tagged with that subject.
+- Rooms already carry `subject` + `tags`; expose filter chips on dashboard.
+
+---
+
+## Cluster 13 — Real-time everywhere & presence v2
+
+### 13.1 Presence channels
+- `room:<id>` — current members, mic/cam state, focus state, current task title, raise-hand.
+- `friends:<uid>` — online + current room id.
+- `global:lobby` — top-level "X people studying now" count (anonymous sample).
+
+### 13.2 Realtime subscriptions added
+- `room_media_sessions`, `room_timer_program`, `session_tasks` (room-scoped), `room_messages` reactions, `dm_messages`, `notifications`, `friend_requests`, `xp_events` (self only), `leaderboard_*` polled every 60 s.
+
+### 13.3 Authorization
+- One `realtime.messages` topic policy that maps topic → owning entity:
+  - `room:*` and `presence_room:*` require `is_room_member`.
+  - `friends:<uid>` requires `auth.uid() = uid` OR they are friends.
+  - `dm:<thread>` requires participant check via SQL fn.
+
+---
+
+## Cluster 14 — Mobile-first polish, accessibility, infra
+
+### 14.1 Responsive
+- Room: media tiles collapse to horizontal swipeable strip on `< 768 px`. Side panels become bottom-sheet tabs (Chat · Tasks · Notes · Leaderboard · Members).
+- Add PWA manifest + service worker (offline shell, cached ambient sounds, push notifications for friend requests + announcements once supported).
+
+### 14.2 Accessibility
+- All media controls reachable via keyboard; captions track scaffold (LK supports server-side STT — leave behind a flag).
+- Reduced-motion preference disables tile animations and confetti on level-up.
+- High-contrast theme variant added to `index.css` tokens.
+
+### 14.3 Observability & cost guardrails
+- Edge function `metrics-rollup` (cron 5 min): writes `daily_metrics(date pk, active_users, sessions_started, video_minutes, ai_seconds, messages_sent)`.
+- Admin dashboard new tab "Costs": LK minutes, ElevenLabs seconds, storage GB. Hard cap toggles per service.
+- Sentry-free lightweight error logger: `client_errors(user_id, route, message, stack_hash, created_at)` write-only via edge fn.
+
+### 14.4 Cleanup
+- Delete the 25 legacy `*.md` / `*.txt` docs; keep `README`, `CHANGELOG`, `ARCHITECTURE`.
+- Tests: vitest coverage for XP curve math, streak math, slash-command parser, throttle function.
+- Update `mem://security/posture.md` with media, friends, DM, and leaderboard rules.
+
+---
+
+## Cluster 15 — Decisions before build (one ask, then go)
+
+I will ask once before starting Cluster 8:
+
+1. **LiveKit account** — do you have one? If not, I'll create the edge function and request `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` as secrets. Free tier signup is at livekit.io.
+2. **Anonymous leaderboard default** — opt-in (show me by default) or opt-out (hide me by default)?
+3. **AI music generation** — leave it OFF by default to protect AI balance, admin toggle to enable?
+
+---
+
+## Execution order & dependencies
+
+```
+8 Live A/V ──┐
+             ├──> 13 Realtime v2 ──> 14 Polish & infra
+9 Focus  ────┤
+10 XP ───────┤
+             ├──> 11 Leaderboards ──> 12 Chat & DMs
+```
+
+8 and 9 are independent; 10 must precede 11; 12 depends on 10 (mentions award XP) and 11 (friends gate DMs).
 
 ---
 
 ## Risk controls
 
-- Each cluster is independently shippable; if a cluster fails QA we revert just that migration block.
-- All admin mutations route through `audit_logs` via DB triggers — no client-trust.
-- Maintenance mode flag is the kill-switch.
-- Existing working features (timer sync, member RLS, exam mode, password reset) are touched only by additions, not rewrites.
+- Every new feature is behind a `system_settings` flag: `feature_video`, `feature_ai_music`, `feature_dm`, `feature_leaderboards`, `feature_friends`, `feature_pomodoro_program`. Admin can kill-switch any feature without redeploy.
+- All XP awards via DB triggers — never trusted from client.
+- Media tokens are per-room, 1-hour TTL, signed server-side.
+- Quota guards (`media_quota_state`, AI seconds) flip features into degraded mode before billing surprises.
+- Each cluster ships its own migration block; reverts isolated.
 
-If approved, I will start with Cluster 1 and ask the four Cluster-6 decisions before continuing.
+---
+
+## Out of scope (explicit)
+
+- Native mobile apps, in-person event check-ins, paid subscriptions, tutoring marketplace, calendar/email digests, AI tutor chat (a future Cluster 16 if requested).
