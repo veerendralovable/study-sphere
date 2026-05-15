@@ -52,6 +52,10 @@ export function AppHeader({ onProfile }: { onProfile?: () => void }) {
           </Link>
           {user && (
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" asChild><Link to="/leaderboard">Leaderboard</Link></Button>
+              <Button variant="ghost" size="sm" asChild><Link to="/friends">Friends</Link></Button>
+              <Button variant="ghost" size="sm" asChild><Link to="/messages">Messages</Link></Button>
+              <Button variant="ghost" size="sm" asChild><Link to="/subjects">Subjects</Link></Button>
               <NotificationsBell />
               {isAdmin && (
                 <Button variant="ghost" size="sm" asChild className="transition-all">
