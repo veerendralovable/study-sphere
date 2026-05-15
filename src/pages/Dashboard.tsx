@@ -17,6 +17,10 @@ import { ProfileDialog } from "@/components/ProfileDialog";
 import { RoomCard } from "@/components/RoomCard";
 import { DailyGoal } from "@/components/DailyGoal";
 import { StatsCard } from "@/components/StatsCard";
+import { XPLevelCard } from "@/components/XPLevelCard";
+import { BadgeGrid } from "@/components/BadgeGrid";
+import { TaskListPanel } from "@/components/TaskListPanel";
+import { AmbientSoundsPanel } from "@/components/AmbientSoundsPanel";
 import { Plus, Search, KeyRound, Flame, Clock, ChartBar as BarChart3, Zap, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -201,9 +205,17 @@ export default function Dashboard() {
           />
         </section>
 
-        {/* Daily Goal */}
-        <section className="mb-8">
+        {/* Daily Goal + XP */}
+        <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">
           <DailyGoal todaySeconds={stats?.todaySeconds ?? 0} />
+          {user && <XPLevelCard userId={user.id} />}
+        </section>
+
+        {/* Tasks + Ambience + Badges */}
+        <section className="mb-8 grid gap-4 lg:grid-cols-3">
+          <TaskListPanel />
+          <AmbientSoundsPanel />
+          {user && <BadgeGrid userId={user.id} />}
         </section>
 
         {/* Actions */}

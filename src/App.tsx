@@ -24,6 +24,11 @@ import AdminReports from "./pages/AdminReports.tsx";
 import AdminLogs from "./pages/AdminLogs.tsx";
 import AdminSettings from "./pages/AdminSettings.tsx";
 import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
+import Leaderboard from "./pages/Leaderboard.tsx";
+import Friends from "./pages/Friends.tsx";
+import Messages from "./pages/Messages.tsx";
+import Subjects from "./pages/Subjects.tsx";
+import SubjectDetail from "./pages/SubjectDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -131,6 +136,12 @@ const App = () => (
                   </AdminRoute>
                 }
               />
+              <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+              <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/messages/:threadId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
+              <Route path="/subjects/:slug" element={<ProtectedRoute><SubjectDetail /></ProtectedRoute>} />
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
