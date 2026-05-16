@@ -1184,7 +1184,6 @@ export type Database = {
         Args: { _q: string }
         Returns: {
           avatar_url: string
-          email: string
           id: string
           name: string
         }[]
